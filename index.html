@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASH - Business Analytics Student Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="logo-section">
+            <h1 class="bash-title">BASH</h1>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search..." class="search-input">
+                <button class="search-btn" onclick="BASH.handleSearch(document.getElementById('searchInput').value)">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="filter-container" id="filterContainer"></div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent"></main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#courses" class="nav-item active" data-page="courses">
+            <i class="fas fa-book-open"></i>
+            <span>Courses</span>
+        </a>
+        <a href="#exams" class="nav-item" data-page="exams">
+            <i class="fas fa-file-alt"></i>
+            <span>Exams</span>
+        </a>
+        <a href="#contribute" class="nav-item" data-page="contribute">
+            <i class="fas fa-hand-holding-heart"></i>
+            <span>Contribute</span>
+        </a>
+        <a href="#tasks" class="nav-item" data-page="tasks">
+            <i class="fas fa-tasks"></i>
+            <span>Tasks</span>
+        </a>
+        <a href="#contact" class="nav-item" data-page="contact">
+            <i class="fas fa-address-book"></i>
+            <span>Contact</span>
+        </a>
+    </nav>
+
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/courses.js"></script>
+    <script src="js/exams.js"></script>
+    <script src="js/contribute.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/contact.js"></script>
+</body>
+</html>
