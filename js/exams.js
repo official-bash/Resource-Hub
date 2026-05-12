@@ -96,7 +96,7 @@ BASH.renderExamsPage = async function () {
                 <div class="exam-links">
                     ${
                       exam.mid_link
-                       ? `<a href="${exam.mid_link}" target="_blank" class="exam-btn btn-mid">
+                        ? `<a href="${BASH.convertGoogleDriveLink(exam.mid_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-mid">
                             <i class="fas fa-file-pdf"></i> Mid Term
                         </a>`
                         : `<span class="exam-btn btn-missing">
@@ -105,7 +105,7 @@ BASH.renderExamsPage = async function () {
                     }
                     ${
                       exam.final_link
-                        ? `<a href="${exam.final_link}" target="_blank" class="exam-btn btn-final">
+                        ? `<a href="${BASH.convertGoogleDriveLink(exam.final_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-final">
                             <i class="fas fa-file-pdf"></i> Final
                         </a>`
                         : `<span class="exam-btn btn-missing">

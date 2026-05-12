@@ -51,7 +51,7 @@ BASH.renderBooksOutlinePage = async function () {
         <div class="exam-links">
           ${
             exam.book_link
-                            ? `<a href="${exam.book_link}" target="_blank" class="exam-btn btn-book">
+              ? `<a href="${BASH.convertGoogleDriveLink(exam.book_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-book">
                   <i class="fas fa-book"></i> Book
                 </a>`
               : `<span class="exam-btn btn-missing">
@@ -60,7 +60,7 @@ BASH.renderBooksOutlinePage = async function () {
           }
           ${
             exam.outline_link
-              ? `<a href="${exam.outline_link}" target="_blank" class="exam-btn btn-outline">
+              ? `<a href="${BASH.convertGoogleDriveLink(exam.outline_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-outline">
                   <i class="fas fa-file-alt"></i> Outline
                 </a>`
               : `<span class="exam-btn btn-missing">

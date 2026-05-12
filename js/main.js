@@ -20,11 +20,9 @@ const BASH = {
     this.loadNavigation();
     this.setupTasksButton();
     this.loadPage("courses");
- 
-    
+
     this.setupSearch();
   },
-
 
   loadNavigation() {
     const navItems = document.querySelectorAll(".nav-item");
@@ -151,8 +149,6 @@ const BASH = {
     this.currentPage = page;
     this.breadcrumbPath = [];
     this.filterState = { type: "all", semester: "all" };
-
-    
 
     this.loadPage(page);
     this.updateFilters(page);
@@ -336,6 +332,34 @@ const BASH = {
   getUniqueSemesters(exams) {
     const semesters = [...new Set(exams.map((e) => e.semester))].sort();
     return semesters;
+  },
+
+  // Convert Google Drive links to mobile-friendly export URLs
+  convertGoogleDriveLink(url) {
+    if (!url || typeof url !== "string") return url;
+
+    // Google Docs to PDF export
+    if (url.includes("docs.google.com/document")) {
+      const docId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+      if (docId)
+        return `https://docs.google.com/document/d/${docId}/export?format=pdf`;
+    }
+
+    // Google Sheets to PDF export
+    if (url.includes("docs.google.com/spreadsheets")) {
+      const sheetId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+      if (sheetId)
+        return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=pdf`;
+    }
+
+    // Google Drive files - add export parameter
+    if (url.includes("drive.google.com")) {
+      const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+      if (fileId)
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+
+    return url;
   },
 };
 
