@@ -51,18 +51,18 @@ BASH.renderBooksOutlinePage = async function () {
         <div class="exam-links">
           ${
             exam.book_link
-              ? `<a href="${exam.book_link}" target="_blank" class="exam-btn btn-book">
+              ? `<button onclick="BASH.openDocument('Book: ${exam.course_name.replace(/'/g, "\\'")}', '${exam.book_link}')" class="exam-btn btn-book">
                   <i class="fas fa-book"></i> Book
-                </a>`
+                </button>`
               : `<span class="exam-btn btn-missing">
                   <i class="fas fa-question-circle"></i> Missing
                 </span>`
           }
           ${
             exam.outline_link
-              ? `<a href="${exam.outline_link}" target="_blank" class="exam-btn btn-outline">
+              ? `<button onclick="BASH.openDocument('Outline: ${exam.course_name.replace(/'/g, "\\'")}', '${exam.outline_link}')" class="exam-btn btn-outline">
                   <i class="fas fa-file-alt"></i> Outline
-                </a>`
+                </button>`
               : `<span class="exam-btn btn-missing">
                   <i class="fas fa-question-circle"></i> Missing
                 </span>`

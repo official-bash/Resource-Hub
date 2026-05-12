@@ -19,8 +19,115 @@ const BASH = {
   init() {
     this.loadNavigation();
     this.setupTasksButton();
-    this.loadPage("courses");
+    this.setupViewerOverlay();
+    this.setupHistory();
+
+    const hash = window.location.hash.replace("#", "") || "courses";
+    if (hash === "viewer") {
+        history.replaceState({ id: 'tab_courses', page: 'courses' }, "", "#courses");
+        this.navigateTo("courses", false);
+    } else {
+        const validPages = ["courses", "exams", "books-outline", "contribute", "contact"];
+        const startPage = validPages.includes(hash) ? hash : "courses";
+        history.replaceState({ id: 'tab_' + startPage, page: startPage }, "", "#" + startPage);
+        this.navigateTo(startPage, false);
+    }
+    
     this.setupSearch();
+  },
+
+  setupViewerOverlay() {
+    const viewerHtml = `
+        <div id="documentViewer" class="viewer-overlay">
+            <div class="viewer-header">
+                <button class="viewer-btn" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="viewer-title" id="documentViewerTitle">Document</div>
+                <div class="viewer-actions">
+                    <button class="viewer-btn" id="documentViewerOpenTab" title="Open in New Tab">
+                        <i class="fas fa-external-link-alt" style="font-size: 14px;"></i>
+                    </button>
+                    <button class="viewer-btn" id="documentViewerDownload" title="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="viewer-content">
+                <iframe id="documentViewerIframe" src=""></iframe>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', viewerHtml);
+
+    document.getElementById('documentViewerOpenTab').addEventListener('click', () => {
+        const src = document.getElementById('documentViewerIframe').src;
+        if (src && src !== 'about:blank') window.open(src, '_blank');
+    });
+    
+    document.getElementById('documentViewerDownload').addEventListener('click', () => {
+        const src = document.getElementById('documentViewerIframe').src;
+        if (src && src !== 'about:blank') {
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = ''; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    });
+  },
+
+  openDocument(title, url) {
+    document.getElementById('documentViewerTitle').textContent = title;
+    document.getElementById('documentViewerIframe').src = url;
+    document.getElementById('documentViewer').classList.add('active');
+    history.pushState({ id: 'viewer' }, '', '#viewer');
+  },
+
+  setupHistory() {
+    window.addEventListener("popstate", (e) => {
+        const viewer = document.getElementById('documentViewer');
+        if (viewer && viewer.classList.contains('active')) {
+            viewer.classList.remove('active');
+            document.getElementById('documentViewerIframe').src = 'about:blank';
+            return;
+        }
+
+        const state = e.state;
+
+        if (this.currentPage === 'courses' && this.breadcrumbPath.length > 0) {
+            if (state && state.id === 'folder') {
+                this.breadcrumbPath.pop();
+                const lastCrumb = this.breadcrumbPath[this.breadcrumbPath.length - 1];
+                if (lastCrumb) {
+                    if (lastCrumb.action === 'semester') BASH.openSemester(lastCrumb.data, false);
+                    else if (lastCrumb.action === 'course') BASH.openCourse(lastCrumb.data, false);
+                    else if (lastCrumb.action === 'folder') BASH.openFolder(lastCrumb.data, false);
+                } else {
+                    this.breadcrumbPath = [];
+                    BASH.displaySemesters(this.data.courses, false);
+                }
+                return;
+            } else if (state && state.id && state.id.startsWith('tab_')) {
+                this.breadcrumbPath = [];
+                BASH.displaySemesters(this.data.courses, false);
+                if (state.page !== 'courses') {
+                     this.navigateTo(state.page, false);
+                }
+                return;
+            }
+        }
+
+        if (state && state.page) {
+             if (this.currentPage !== state.page) {
+                 this.navigateTo(state.page, false);
+             } else if (state.page === 'courses') {
+                 this.breadcrumbPath = [];
+                 BASH.displaySemesters(this.data.courses, false);
+             }
+        }
+    });
   },
 
   loadNavigation() {
@@ -140,7 +247,7 @@ const BASH = {
     modalContent.innerHTML = html;
   },
 
-  navigateTo(page) {
+  navigateTo(page, pushState = true) {
     document.querySelectorAll(".nav-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.page === page);
     });
@@ -148,6 +255,11 @@ const BASH = {
     this.currentPage = page;
     this.breadcrumbPath = [];
     this.filterState = { type: "all", semester: "all" };
+
+    if (pushState) {
+        history.pushState({ id: 'tab_' + page, page: page }, '', '#' + page);
+    }
+
     this.loadPage(page);
     this.updateFilters(page);
     document.getElementById("searchInput").value = "";

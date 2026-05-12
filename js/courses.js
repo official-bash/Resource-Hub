@@ -123,7 +123,8 @@ BASH.renderCoursesPage = async function () {
   this.displaySemesters(courses);
 };
 
-BASH.displaySemesters = function (semesters) {
+BASH.displaySemesters = function (semesters, pushHistory = false) {
+  this.breadcrumbPath = [];
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
 
@@ -132,9 +133,7 @@ BASH.displaySemesters = function (semesters) {
     container.appendChild(card);
   });
 
-  this.updateBreadcrumb([
-    { name: "Home", onClick: () => this.displaySemesters(this.data.courses) },
-  ]);
+  this.updateBreadcrumb();
 };
 
 BASH.createCard = function (item, type) {
@@ -183,11 +182,11 @@ BASH.createCard = function (item, type) {
   return div;
 };
 
-BASH.openSemester = function (semester) {
-  this.breadcrumbPath.push({
-    name: semester.title,
-    onClick: () => this.openSemester(semester),
-  });
+BASH.openSemester = function (semester, pushHistory = true) {
+  if (pushHistory) {
+      this.breadcrumbPath.push({ name: semester.title, action: 'semester', data: semester });
+      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+  }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
 
@@ -195,14 +194,14 @@ BASH.openSemester = function (semester) {
     container.appendChild(this.createCard(course, "course"));
   });
 
-  this.updateBreadcrumb(this.breadcrumbPath);
+  this.updateBreadcrumb();
 };
 
-BASH.openCourse = function (course) {
-  this.breadcrumbPath.push({
-    name: course.name,
-    onClick: () => this.openCourse(course),
-  });
+BASH.openCourse = function (course, pushHistory = true) {
+  if (pushHistory) {
+      this.breadcrumbPath.push({ name: course.name, action: 'course', data: course });
+      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+  }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
 
@@ -210,14 +209,14 @@ BASH.openCourse = function (course) {
     container.appendChild(this.createCard(item, item.type));
   });
 
-  this.updateBreadcrumb(this.breadcrumbPath);
+  this.updateBreadcrumb();
 };
 
-BASH.openFolder = function (folder) {
-  this.breadcrumbPath.push({
-    name: folder.name,
-    onClick: () => this.openFolder(folder),
-  });
+BASH.openFolder = function (folder, pushHistory = true) {
+  if (pushHistory) {
+      this.breadcrumbPath.push({ name: folder.name, action: 'folder', data: folder });
+      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+  }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
 
@@ -225,50 +224,49 @@ BASH.openFolder = function (folder) {
     container.appendChild(this.createCard(item, item.type));
   });
 
-  this.updateBreadcrumb(this.breadcrumbPath);
+  this.updateBreadcrumb();
 };
 
 BASH.openFile = function (file) {
-  const mainContent = document.getElementById("mainContent");
-  this.previousState = mainContent.innerHTML;
-
-  mainContent.innerHTML = `
-        <button onclick="BASH.closeFileViewer()" style="margin-bottom:16px; padding:8px 16px; background:var(--bash-navy); color:white; border:none; border-radius:20px; cursor:pointer; font-size:14px;">
-            <i class="fas fa-arrow-left"></i> Back
-        </button>
-        <div style="background:white; border-radius:12px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-            <h3 style="margin-bottom:12px; color:var(--bash-navy);">
-                <i class="fas fa-file-pdf" style="color:#E53935;"></i> ${file.name}
-            </h3>
-            <iframe src="${file.link}" width="100%" height="600px" style="border:none; border-radius:8px;" 
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms">
-            </iframe>
-        </div>
-    `;
+  BASH.openDocument(file.name, file.link);
 };
 
-BASH.closeFileViewer = function () {
-  if (this.previousState) {
-    document.getElementById("mainContent").innerHTML = this.previousState;
-  }
-};
-
-BASH.updateBreadcrumb = function (path) {
+BASH.updateBreadcrumb = function () {
   const breadcrumb = document.getElementById("breadcrumb");
   if (!breadcrumb) return;
 
   breadcrumb.innerHTML = "";
-  path.forEach((item, index) => {
+  
+  const homeSpan = document.createElement("span");
+  homeSpan.className = `breadcrumb-item ${this.breadcrumbPath.length === 0 ? "active" : ""}`;
+  homeSpan.textContent = "Home";
+  homeSpan.addEventListener("click", () => {
+      if (this.breadcrumbPath.length > 0) {
+          history.go(-this.breadcrumbPath.length);
+      }
+  });
+  breadcrumb.appendChild(homeSpan);
+
+  if (this.breadcrumbPath.length > 0) {
+      const arrow = document.createElement("span");
+      arrow.className = "breadcrumb-arrow";
+      arrow.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      breadcrumb.appendChild(arrow);
+  }
+
+  this.breadcrumbPath.forEach((item, index) => {
     const span = document.createElement("span");
-    span.className = `breadcrumb-item ${index === path.length - 1 ? "active" : ""}`;
+    span.className = `breadcrumb-item ${index === this.breadcrumbPath.length - 1 ? "active" : ""}`;
     span.textContent = item.name;
     span.addEventListener("click", () => {
-      this.breadcrumbPath = path.slice(0, index + 1);
-      item.onClick();
+       const stepsBack = this.breadcrumbPath.length - 1 - index;
+       if (stepsBack > 0) {
+           history.go(-stepsBack);
+       }
     });
     breadcrumb.appendChild(span);
 
-    if (index < path.length - 1) {
+    if (index < this.breadcrumbPath.length - 1) {
       const arrow = document.createElement("span");
       arrow.className = "breadcrumb-arrow";
       arrow.innerHTML = '<i class="fas fa-chevron-right"></i>';
