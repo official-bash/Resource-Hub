@@ -39,6 +39,8 @@ BASH.parseExamsCSV = function (csv) {
       year: values[3],
       mid_link: values[4],
       final_link: values[5],
+      book_link: values[6] || "", // New: column 7
+      outline_link: values[7] || "", // New: column 8
     });
   }
 
@@ -83,7 +85,7 @@ BASH.renderExamsPage = async function () {
   exams.forEach((exam) => {
     html += `
             <div class="exam-card fade-in" data-course="${exam.course_name.toLowerCase()}" 
-                 data-has-mid="${!!exam.mid_link}" data-has-final="${!!exam.final_link}">
+                 data-semester="${exam.semester}" data-has-mid="${!!exam.mid_link}" data-has-final="${!!exam.final_link}">
                 <div class="exam-header">
                     <div>
                         <div class="exam-course">${exam.course_name}</div>
@@ -119,18 +121,26 @@ BASH.renderExamsPage = async function () {
   mainContent.innerHTML = html;
 };
 
-BASH.filterExams = function (query, filter) {
+BASH.filterExams = function (query, filters) {
   const cards = document.querySelectorAll("#examsContainer .exam-card");
   cards.forEach((card) => {
     const text = card.dataset.course;
+    const semester = card.dataset.semester;
     const hasMid = card.dataset.hasMid === "true";
     const hasFinal = card.dataset.hasFinal === "true";
 
     const matchesQuery = !query || text.includes(query.toLowerCase());
-    let matchesFilter = filter === "all";
-    if (filter === "mid") matchesFilter = hasMid;
-    if (filter === "final") matchesFilter = hasFinal;
 
-    card.style.display = matchesQuery && matchesFilter ? "" : "none";
+    // Type filter (mid/final)
+    let matchesType = filters.type === "all";
+    if (filters.type === "mid") matchesType = hasMid;
+    if (filters.type === "final") matchesType = hasFinal;
+
+    // Semester filter
+    const matchesSemester =
+      filters.semester === "all" || semester === filters.semester;
+
+    card.style.display =
+      matchesQuery && matchesType && matchesSemester ? "" : "none";
   });
 };
