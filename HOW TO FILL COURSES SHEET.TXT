@@ -11,3 +11,21 @@ File: File name
 Link: Google Drive preview link (use /preview at end)
 
 Type: Always "file" for actual files
+
+
+
+
+
+
+
+How to fill:
+
+Leave mid_link or final_link empty if missing (these will show in Contribute page)
+
+Use Google Drive preview links
+
+
+
+----
+
+

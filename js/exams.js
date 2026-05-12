@@ -96,18 +96,18 @@ BASH.renderExamsPage = async function () {
                 <div class="exam-links">
                     ${
                       exam.mid_link
-                        ? `<button onclick="BASH.openDocument('Mid Term: ${exam.course_name.replace(/'/g, "\\'")}', '${exam.mid_link}')" class="exam-btn btn-mid">
+                       ? `<a href="${exam.mid_link}" target="_blank" class="exam-btn btn-mid">
                             <i class="fas fa-file-pdf"></i> Mid Term
-                        </button>`
+                        </a>`
                         : `<span class="exam-btn btn-missing">
                             <i class="fas fa-question-circle"></i> Mid Missing
                         </span>`
                     }
                     ${
                       exam.final_link
-                        ? `<button onclick="BASH.openDocument('Final: ${exam.course_name.replace(/'/g, "\\'")}', '${exam.final_link}')" class="exam-btn btn-final">
+                        ? `<a href="${exam.final_link}" target="_blank" class="exam-btn btn-final">
                             <i class="fas fa-file-pdf"></i> Final
-                        </button>`
+                        </a>`
                         : `<span class="exam-btn btn-missing">
                             <i class="fas fa-question-circle"></i> Final Missing
                         </span>`
