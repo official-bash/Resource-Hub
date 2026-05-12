@@ -1,0 +1,13 @@
+How to fill:
+
+Semester: Semester name (e.g., "Semester 1")
+
+Course: Course name
+
+Folder: Subfolder name (leave empty if no subfolder)
+
+File: File name
+
+Link: Google Drive preview link (use /preview at end)
+
+Type: Always "file" for actual files
