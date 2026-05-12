@@ -41,6 +41,7 @@ BASH.parseExamsCSV = function (csv) {
       final_link: values[5],
       book_link: values[6] || "", // New: column 7
       outline_link: values[7] || "", // New: column 8
+      lecture_notes_link: values[8] || "", // New: column 9
     });
   }
 
@@ -96,21 +97,35 @@ BASH.renderExamsPage = async function () {
                 <div class="exam-links">
                     ${
                       exam.mid_link
-                        ? `<a href="${BASH.convertGoogleDriveLink(exam.mid_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-mid">
+                        ? `<a href="${exam.mid_link}" target="_blank" class="exam-btn btn-mid">
                             <i class="fas fa-file-pdf"></i> Mid Term
                         </a>`
-                        : `<span class="exam-btn btn-missing">
-                            <i class="fas fa-question-circle"></i> Mid Missing
-                        </span>`
+                        : `<div class="missing-container">
+                            <span class="exam-btn btn-missing">
+                              <i class="fas fa-question-circle"></i> Mid Missing
+                            </span>
+                            <a href="https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                              `Hi, I have the Mid Term for ${exam.course_name} (Semester ${exam.semester}, ${exam.year}) and want to contribute to BASH.`,
+                            )}" target="_blank" class="exam-btn btn-contribute-inline">
+                              <i class="fab fa-whatsapp"></i> Contribute
+                            </a>
+                          </div>`
                     }
                     ${
                       exam.final_link
-                        ? `<a href="${BASH.convertGoogleDriveLink(exam.final_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-final">
+                        ? `<a href="${exam.final_link}" target="_blank" class="exam-btn btn-final">
                             <i class="fas fa-file-pdf"></i> Final
                         </a>`
-                        : `<span class="exam-btn btn-missing">
-                            <i class="fas fa-question-circle"></i> Final Missing
-                        </span>`
+                        : `<div class="missing-container">
+                            <span class="exam-btn btn-missing">
+                              <i class="fas fa-question-circle"></i> Final Missing
+                            </span>
+                            <a href="https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                              `Hi, I have the Final for ${exam.course_name} (Semester ${exam.semester}, ${exam.year}) and want to contribute to BASH.`,
+                            )}" target="_blank" class="exam-btn btn-contribute-inline">
+                              <i class="fab fa-whatsapp"></i> Contribute
+                            </a>
+                          </div>`
                     }
                 </div>
             </div>

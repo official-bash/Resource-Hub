@@ -18,63 +18,119 @@ BASH.renderContributePage = async function () {
   }
 
   html +=
-    '<p style="margin-bottom:20px; color:var(--dark-gray);">Help fellow students! Click any missing paper to contribute via WhatsApp.</p>';
+    '<p style="margin-bottom:20px; color:var(--dark-gray);">Help fellow students! Share missing resources via WhatsApp.</p>';
 
-  const missingPapers = [];
+  const missingItems = [];
+
   exams.forEach((exam) => {
     if (!exam.mid_link) {
-      missingPapers.push({
+      missingItems.push({
         course: exam.course_name,
         type: "Mid Term",
-        examType: "mid",
+        itemType: "mid",
         semester: exam.semester,
         year: exam.year,
+        category: "Exams",
       });
     }
 
     if (!exam.final_link) {
-      missingPapers.push({
+      missingItems.push({
         course: exam.course_name,
         type: "Final",
-        examType: "final",
+        itemType: "final",
         semester: exam.semester,
         year: exam.year,
+        category: "Exams",
+      });
+    }
+
+    if (!exam.book_link) {
+      missingItems.push({
+        course: exam.course_name,
+        type: "Book",
+        itemType: "book",
+        semester: exam.semester,
+        year: exam.year,
+        category: "Books & Outline",
+      });
+    }
+
+    if (!exam.outline_link) {
+      missingItems.push({
+        course: exam.course_name,
+        type: "Course Outline",
+        itemType: "outline",
+        semester: exam.semester,
+        year: exam.year,
+        category: "Books & Outline",
+      });
+    }
+
+    if (!exam.lecture_notes_link) {
+      missingItems.push({
+        course: exam.course_name,
+        type: "Lecture Notes",
+        itemType: "notes",
+        semester: exam.semester,
+        year: exam.year,
+        category: "Lecture Notes",
       });
     }
   });
 
-  if (missingPapers.length === 0) {
+  if (missingItems.length === 0) {
     html += `
             <div class="empty-state success">
                 <i class="fas fa-check-circle"></i>
-                <h3>All Papers Available!</h3>
-                <p>No missing papers at the moment. Thank you!</p>
+                <h3>All Resources Available!</h3>
+                <p>No missing resources at the moment. Thank you!</p>
             </div>
         `;
   } else {
-    html += `<div id="missingContainer"><p style="margin-bottom:12px; color:var(--bash-navy); font-weight:600;">${missingPapers.length} missing papers found:</p>`;
+    html += `<div id="missingContainer"><p style="margin-bottom:12px; color:var(--bash-navy); font-weight:600;">${missingItems.length} missing resources found:</p>`;
 
-    missingPapers.forEach((paper) => {
-      const message = encodeURIComponent(
-        `Hi, I have the ${paper.type} for ${paper.course} (Semester ${paper.semester}, ${paper.year}) and want to contribute to BASH.`,
-      );
-      const whatsappLink = `https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${message}`;
+    // Group by category
+    const categories = {};
+    missingItems.forEach((item) => {
+      if (!categories[item.category]) {
+        categories[item.category] = [];
+      }
+      categories[item.category].push(item);
+    });
 
-      html += `
-                <div class="exam-card fade-in" data-course="${paper.course.toLowerCase()}" 
-                     data-exam-type="${paper.examType}" style="border-left-color: var(--bash-orange);">
-                    <div class="exam-header">
-                        <div>
-                            <div class="exam-course">${paper.course}</div>
-                            <div class="exam-meta">Semester ${paper.semester} | ${paper.year}</div>
-                        </div>
-                        <div class="exam-badge" style="background:#E53935;">${paper.type}</div>
-                    </div>
-                    <a href="${whatsappLink}" target="_blank" class="exam-btn btn-contribute" style="text-decoration:none;">
-                        <i class="fab fa-whatsapp"></i> Contribute ${paper.type}
-                    </a>
-                </div>
-            `;
+    // Render each category
+    Object.keys(categories).forEach((category) => {
+      html += `<div class="contribute-category"><h4 style="margin-bottom:10px; color:var(--bash-navy);">${category}</h4>`;
+
+      categories[category].forEach((item) => {
+        const message = encodeURIComponent(
+          `Hi, I have the ${item.type} for ${item.course} (Semester ${item.semester}, ${item.year}) and want to contribute to BASH.`,
+        );
+        const whatsappLink = `https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${message}`;
+
+        let badgeColor = "#E53935"; // Default red for missing
+        if (item.category === "Books & Outline") badgeColor = "#7B68EE";
+        if (item.category === "Lecture Notes") badgeColor = "#4CAF50";
+
+        html += `
+                  <div class="exam-card fade-in" data-course="${item.course.toLowerCase()}" 
+                       data-item-type="${item.itemType}" data-category="${category}" style="border-left-color: ${badgeColor};">
+                      <div class="exam-header">
+                          <div>
+                              <div class="exam-course">${item.course}</div>
+                              <div class="exam-meta">Semester ${item.semester} | ${item.year}</div>
+                          </div>
+                          <div class="exam-badge" style="background:${badgeColor};">${item.type}</div>
+                      </div>
+                      <a href="${whatsappLink}" target="_blank" class="exam-btn btn-contribute" style="text-decoration:none;">
+                          <i class="fab fa-whatsapp"></i> Contribute ${item.type}
+                      </a>
+                  </div>
+              `;
+      });
+
+      html += "</div>";
     });
 
     html += "</div>";
@@ -101,10 +157,10 @@ BASH.filterContribution = function (query, filter) {
   const cards = container.querySelectorAll(".exam-card");
   cards.forEach((card) => {
     const text = card.dataset.course;
-    const examType = card.dataset.examType;
+    const itemType = card.dataset.itemType;
 
     const matchesQuery = !query || text.includes(query.toLowerCase());
-    const matchesFilter = filter === "all" || examType === filter;
+    const matchesFilter = filter === "all" || itemType === filter;
 
     card.style.display = matchesQuery && matchesFilter ? "" : "none";
   });

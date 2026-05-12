@@ -221,6 +221,51 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* Missing Container with Contribute Button */
+.missing-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-contribute-inline {
+    background: #25D366;
+    color: white;
+    padding: 7px 14px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.btn-contribute-inline:hover {
+    background: #1DAC51;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-notes {
+    background: #4CAF50;
+    color: white;
+}
+
+.contribute-category {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.contribute-category:last-child {
+    border-bottom: none;
+}
+
 /* Tasks */
 .task-card {
     background: white;
@@ -382,17 +427,21 @@
     .section-title {
         font-size: 18px;
     }
+
     .breadcrumb {
         padding: 8px 12px;
         font-size: 11px;
         gap: 4px;
     }
+
     .breadcrumb-item {
         font-size: 11px;
     }
+
     .course-card {
         width: 100%;
     }
+
     .exam-card {
         width: 100%;
         margin-left: 0;

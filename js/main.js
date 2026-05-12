@@ -171,6 +171,9 @@ const BASH = {
         case "books-outline":
           this.renderBooksOutlinePage();
           break;
+        case "lecture-notes":
+          this.renderLectureNotesPage();
+          break;
         case "contribute":
           this.renderContributePage();
           break;
@@ -205,6 +208,9 @@ const BASH = {
         break;
       case "books-outline":
         this.filterBooksOutline(query, this.filterState);
+        break;
+      case "lecture-notes":
+        this.filterLectureNotes(query, this.filterState);
         break;
       case "contribute":
         this.filterContribution(query, this.filterState.type);
@@ -313,14 +319,41 @@ const BASH = {
             ],
           },
         ];
+      case "lecture-notes":
+        // Get unique semesters from data
+        const noteSemesters = this.getUniqueSemesters(this.data.exams || []);
+        return [
+          {
+            name: "type",
+            filters: [
+              { label: "All", value: "all" },
+              { label: "Available", value: "available" },
+              { label: "Missing", value: "missing" },
+            ],
+          },
+          {
+            name: "semester",
+            filters: [
+              { label: "All Semesters", value: "all" },
+              ...noteSemesters.map((sem) => ({
+                label: `Semester ${sem}`,
+                value: sem,
+              })),
+            ],
+          },
+        ];
       case "contribute":
         return [
           {
             name: "type",
             filters: [
               { label: "All Missing", value: "all" },
+              { label: "Exam Papers", value: "mid|final", hidden: true },
               { label: "Mid Missing", value: "mid" },
               { label: "Final Missing", value: "final" },
+              { label: "Books Missing", value: "book" },
+              { label: "Outlines Missing", value: "outline" },
+              { label: "Notes Missing", value: "notes" },
             ],
           },
         ];
@@ -332,34 +365,6 @@ const BASH = {
   getUniqueSemesters(exams) {
     const semesters = [...new Set(exams.map((e) => e.semester))].sort();
     return semesters;
-  },
-
-  // Convert Google Drive links to mobile-friendly export URLs
-  convertGoogleDriveLink(url) {
-    if (!url || typeof url !== "string") return url;
-
-    // Google Docs to PDF export
-    if (url.includes("docs.google.com/document")) {
-      const docId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
-      if (docId)
-        return `https://docs.google.com/document/d/${docId}/export?format=pdf`;
-    }
-
-    // Google Sheets to PDF export
-    if (url.includes("docs.google.com/spreadsheets")) {
-      const sheetId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
-      if (sheetId)
-        return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=pdf`;
-    }
-
-    // Google Drive files - add export parameter
-    if (url.includes("drive.google.com")) {
-      const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
-      if (fileId)
-        return `https://drive.google.com/uc?export=download&id=${fileId}`;
-    }
-
-    return url;
   },
 };
 

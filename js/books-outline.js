@@ -51,21 +51,35 @@ BASH.renderBooksOutlinePage = async function () {
         <div class="exam-links">
           ${
             exam.book_link
-              ? `<a href="${BASH.convertGoogleDriveLink(exam.book_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-book">
+              ? `<a href="${exam.book_link}" target="_blank" class="exam-btn btn-book">
                   <i class="fas fa-book"></i> Book
                 </a>`
-              : `<span class="exam-btn btn-missing">
-                  <i class="fas fa-question-circle"></i> Missing
-                </span>`
+              : `<div class="missing-container">
+                  <span class="exam-btn btn-missing">
+                    <i class="fas fa-question-circle"></i> Missing
+                  </span>
+                  <a href="https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                    `Hi, I have the book for ${exam.course_name} (Semester ${exam.semester}, ${exam.year}) and want to contribute to BASH.`,
+                  )}" target="_blank" class="exam-btn btn-contribute-inline">
+                    <i class="fab fa-whatsapp"></i> Contribute
+                  </a>
+                </div>`
           }
           ${
             exam.outline_link
-              ? `<a href="${BASH.convertGoogleDriveLink(exam.outline_link)}" target="_blank" rel="noopener noreferrer" class="exam-btn btn-outline">
+              ? `<a href="${exam.outline_link}" target="_blank" class="exam-btn btn-outline">
                   <i class="fas fa-file-alt"></i> Outline
                 </a>`
-              : `<span class="exam-btn btn-missing">
-                  <i class="fas fa-question-circle"></i> Missing
-                </span>`
+              : `<div class="missing-container">
+                  <span class="exam-btn btn-missing">
+                    <i class="fas fa-question-circle"></i> Missing
+                  </span>
+                  <a href="https://wa.me/${BASH_CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                    `Hi, I have the course outline for ${exam.course_name} (Semester ${exam.semester}, ${exam.year}) and want to contribute to BASH.`,
+                  )}" target="_blank" class="exam-btn btn-contribute-inline">
+                    <i class="fab fa-whatsapp"></i> Contribute
+                  </a>
+                </div>`
           }
         </div>
       </div>

@@ -54,7 +54,18 @@ BASH.parseCoursesCSV = function (csv) {
       };
     }
 
-    if (file && link) {
+    // Handle folder links (folder with link but no file)
+    if (!file && folder && link) {
+      const folderLink = {
+        name: folder,
+        type: "folder",
+        link: link,
+        fileType: type || "folder",
+      };
+      semesters[semester].courses[course].content.push(folderLink);
+    }
+    // Handle files in folders or standalone files
+    else if (file && link) {
       const fileObj = {
         name: file,
         type: "file",
@@ -64,7 +75,7 @@ BASH.parseCoursesCSV = function (csv) {
 
       if (folder) {
         let folderObj = semesters[semester].courses[course].content.find(
-          (f) => f.name === folder && f.type === "folder",
+          (f) => f.name === folder && f.type === "folder" && !f.link,
         );
         if (!folderObj) {
           folderObj = { name: folder, type: "folder", content: [] };
@@ -175,8 +186,11 @@ BASH.createCard = function (item, type) {
   div.addEventListener("click", () => {
     if (type === "semester") this.openSemester(item);
     else if (type === "course") this.openCourse(item);
-    else if (type === "folder") this.openFolder(item);
-    else this.openFile(item);
+    else if (type === "folder") {
+      // If folder has a link, open it directly; otherwise show contents
+      if (item.link) this.openFile(item);
+      else this.openFolder(item);
+    } else this.openFile(item);
   });
 
   return div;
@@ -184,8 +198,12 @@ BASH.createCard = function (item, type) {
 
 BASH.openSemester = function (semester, pushHistory = true) {
   if (pushHistory) {
-      this.breadcrumbPath.push({ name: semester.title, action: 'semester', data: semester });
-      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+    this.breadcrumbPath.push({
+      name: semester.title,
+      action: "semester",
+      data: semester,
+    });
+    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
@@ -199,8 +217,12 @@ BASH.openSemester = function (semester, pushHistory = true) {
 
 BASH.openCourse = function (course, pushHistory = true) {
   if (pushHistory) {
-      this.breadcrumbPath.push({ name: course.name, action: 'course', data: course });
-      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+    this.breadcrumbPath.push({
+      name: course.name,
+      action: "course",
+      data: course,
+    });
+    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
@@ -214,8 +236,12 @@ BASH.openCourse = function (course, pushHistory = true) {
 
 BASH.openFolder = function (folder, pushHistory = true) {
   if (pushHistory) {
-      this.breadcrumbPath.push({ name: folder.name, action: 'folder', data: folder });
-      history.pushState({ id: 'folder', page: 'courses' }, '', '#courses');
+    this.breadcrumbPath.push({
+      name: folder.name,
+      action: "folder",
+      data: folder,
+    });
+    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
@@ -236,22 +262,22 @@ BASH.updateBreadcrumb = function () {
   if (!breadcrumb) return;
 
   breadcrumb.innerHTML = "";
-  
+
   const homeSpan = document.createElement("span");
   homeSpan.className = `breadcrumb-item ${this.breadcrumbPath.length === 0 ? "active" : ""}`;
   homeSpan.textContent = "Home";
   homeSpan.addEventListener("click", () => {
-      if (this.breadcrumbPath.length > 0) {
-          history.go(-this.breadcrumbPath.length);
-      }
+    if (this.breadcrumbPath.length > 0) {
+      history.go(-this.breadcrumbPath.length);
+    }
   });
   breadcrumb.appendChild(homeSpan);
 
   if (this.breadcrumbPath.length > 0) {
-      const arrow = document.createElement("span");
-      arrow.className = "breadcrumb-arrow";
-      arrow.innerHTML = '<i class="fas fa-chevron-right"></i>';
-      breadcrumb.appendChild(arrow);
+    const arrow = document.createElement("span");
+    arrow.className = "breadcrumb-arrow";
+    arrow.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    breadcrumb.appendChild(arrow);
   }
 
   this.breadcrumbPath.forEach((item, index) => {
@@ -259,10 +285,10 @@ BASH.updateBreadcrumb = function () {
     span.className = `breadcrumb-item ${index === this.breadcrumbPath.length - 1 ? "active" : ""}`;
     span.textContent = item.name;
     span.addEventListener("click", () => {
-       const stepsBack = this.breadcrumbPath.length - 1 - index;
-       if (stepsBack > 0) {
-           history.go(-stepsBack);
-       }
+      const stepsBack = this.breadcrumbPath.length - 1 - index;
+      if (stepsBack > 0) {
+        history.go(-stepsBack);
+      }
     });
     breadcrumb.appendChild(span);
 
