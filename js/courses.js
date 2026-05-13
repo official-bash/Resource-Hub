@@ -1,7 +1,7 @@
-// Get courses data from Google Sheet
+// Get courses data from EXAMS sheet (new data structure)
 BASH.fetchCourses = async function () {
-  // If no URL configured, return empty array
-  if (!BASH_CONFIG.SHEETS.COURSES) {
+  // Fetch from EXAMS sheet to get course documents
+  if (!BASH_CONFIG.SHEETS.EXAMS) {
     this.data.courses = [];
     this.coursesError =
       "No courses data source configured. Please add the CSV URL in config.js.";
@@ -9,10 +9,10 @@ BASH.fetchCourses = async function () {
   }
 
   try {
-    const response = await fetch(BASH_CONFIG.SHEETS.COURSES);
+    const response = await fetch(BASH_CONFIG.SHEETS.EXAMS);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const csvText = await response.text();
-    this.data.courses = this.parseCoursesCSV(csvText);
+    this.data.courses = this.parseCoursesFromExams(csvText);
     this.coursesError = null;
     return this.data.courses;
   } catch (error) {
@@ -23,19 +23,28 @@ BASH.fetchCourses = async function () {
   }
 };
 
-BASH.parseCoursesCSV = function (csv) {
+BASH.parseCoursesFromExams = function (csv) {
   const lines = csv.trim().split("\n");
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   const semesters = {};
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map((v) => v.trim());
-    if (values.length < 6) continue;
+    if (values.length < 4) continue;
 
-    const [semester, course, folder, file, link, type] = values;
+    const courseId = values[0];
+    const courseName = values[1];
+    const semester = values[2];
+    const year = values[3];
+    const midLink = values[4] || "";
+    const finalLink = values[5] || "";
+    const bookLink = values[6] || "";
+    const outlineLink = values[7] || "";
+    const lectureNotesLink = values[8] || "";
+    const googleFolderLink = values[9] || "";
 
+    // Group by semester
     if (!semesters[semester]) {
       semesters[semester] = {
         id: semester.toLowerCase().replace(/\s+/g, "-"),
@@ -44,47 +53,78 @@ BASH.parseCoursesCSV = function (csv) {
       };
     }
 
-    if (!semesters[semester].courses[course]) {
-      semesters[semester].courses[course] = {
-        id: course.toLowerCase().replace(/\s+/g, "-"),
-        name: course,
-        icon: "fa-folder",
-        type: "folder",
-        content: [],
+    // Group by course within semester
+    if (!semesters[semester].courses[courseName]) {
+      semesters[semester].courses[courseName] = {
+        id: courseId.toLowerCase().replace(/\s+/g, "-"),
+        name: courseName,
+        icon: "fa-book",
+        type: "course",
+        documents: [],
       };
     }
 
-    // Handle folder links (folder with link but no file)
-    if (!file && folder && link) {
-      const folderLink = {
-        name: folder,
-        type: "folder",
-        link: link,
-        fileType: type || "folder",
-      };
-      semesters[semester].courses[course].content.push(folderLink);
-    }
-    // Handle files in folders or standalone files
-    else if (file && link) {
-      const fileObj = {
-        name: file,
-        type: "file",
-        link: link,
-        fileType: type || "file",
-      };
+    const course = semesters[semester].courses[courseName];
 
-      if (folder) {
-        let folderObj = semesters[semester].courses[course].content.find(
-          (f) => f.name === folder && f.type === "folder" && !f.link,
-        );
-        if (!folderObj) {
-          folderObj = { name: folder, type: "folder", content: [] };
-          semesters[semester].courses[course].content.push(folderObj);
-        }
-        folderObj.content.push(fileObj);
-      } else {
-        semesters[semester].courses[course].content.push(fileObj);
-      }
+    // Add document items from EXAMS columns (only if they have links)
+    if (midLink) {
+      course.documents.push({
+        name: "Mid Term Exam",
+        type: "document",
+        link: midLink,
+        icon: "fa-file-pdf",
+        fileType: "pdf",
+      });
+    }
+
+    if (finalLink) {
+      course.documents.push({
+        name: "Final Exam",
+        type: "document",
+        link: finalLink,
+        icon: "fa-file-pdf",
+        fileType: "pdf",
+      });
+    }
+
+    if (outlineLink) {
+      course.documents.push({
+        name: "Course Outline",
+        type: "document",
+        link: outlineLink,
+        icon: "fa-list",
+        fileType: "outline",
+      });
+    }
+
+    if (bookLink) {
+      course.documents.push({
+        name: "Course Book",
+        type: "document",
+        link: bookLink,
+        icon: "fa-book",
+        fileType: "book",
+      });
+    }
+
+    if (lectureNotesLink) {
+      course.documents.push({
+        name: "Lecture Notes",
+        type: "document",
+        link: lectureNotesLink,
+        icon: "fa-clipboard",
+        fileType: "notes",
+      });
+    }
+
+    if (googleFolderLink) {
+      course.documents.push({
+        name: "📁 Google Drive Folder",
+        type: "folder",
+        link: googleFolderLink,
+        icon: "fa-google-drive",
+        fileType: "google-drive",
+      });
     }
   }
 
@@ -163,8 +203,18 @@ BASH.createCard = function (item, type) {
       iconClass = item.icon || "fa-book";
       iconColorClass = "icon-course";
       break;
+    case "document":
+      // Use icon from document item if available
+      iconClass = item.icon || "fa-file";
+      if (item.fileType === "pdf") iconClass = "fa-file-pdf";
+      else if (item.fileType === "book") iconClass = "fa-book";
+      else if (item.fileType === "outline") iconClass = "fa-list";
+      else if (item.fileType === "notes") iconClass = "fa-clipboard";
+      iconColorClass = "icon-document";
+      break;
     case "folder":
-      iconClass = "fa-folder-open";
+      iconClass = item.icon || "fa-folder-open";
+      if (item.fileType === "google-drive") iconClass = "fa-folder";
       iconColorClass = "icon-folder";
       break;
     default:
@@ -187,10 +237,12 @@ BASH.createCard = function (item, type) {
     if (type === "semester") this.openSemester(item);
     else if (type === "course") this.openCourse(item);
     else if (type === "folder") {
-      // If folder has a link, open it directly; otherwise show contents
-      if (item.link) this.openFile(item);
-      else this.openFolder(item);
-    } else this.openFile(item);
+      // Folder is always a link in new structure
+      this.openFile(item);
+    } else {
+      // Document item - open the link
+      this.openFile(item);
+    }
   });
 
   return div;
@@ -222,33 +274,27 @@ BASH.openCourse = function (course, pushHistory = true) {
       action: "course",
       data: course,
     });
-    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
+    history.pushState({ id: "course", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
   container.innerHTML = "";
 
-  course.content.forEach((item) => {
-    container.appendChild(this.createCard(item, item.type));
-  });
-
-  this.updateBreadcrumb();
-};
-
-BASH.openFolder = function (folder, pushHistory = true) {
-  if (pushHistory) {
-    this.breadcrumbPath.push({
-      name: folder.name,
-      action: "folder",
-      data: folder,
+  // Display all documents for this course
+  if (course.documents && course.documents.length > 0) {
+    course.documents.forEach((doc) => {
+      container.appendChild(
+        this.createCard(doc, doc.type === "folder" ? "folder" : "document"),
+      );
     });
-    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
+  } else {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>No Documents Available</h3>
+        <p>No documents have been added for this course yet.</p>
+      </div>
+    `;
   }
-  const container = document.getElementById("coursesContainer");
-  container.innerHTML = "";
-
-  folder.content.forEach((item) => {
-    container.appendChild(this.createCard(item, item.type));
-  });
 
   this.updateBreadcrumb();
 };
@@ -314,3 +360,6 @@ BASH.filterCourses = function (query, filter) {
     card.style.display = matchesQuery && matchesFilter ? "" : "none";
   });
 };
+
+
+

@@ -4,8 +4,13 @@ const BASH_CONFIG = {
   // Replace these with your own published sheet URLs
   // To get your URL: File → Share → Publish to web → Choose CSV format → Copy the URL
   //
-  // Exams sheet columns: course_id, course_name, semester, year, mid_link, final_link, book_link, outline_link
+  // EXAMS sheet is now the primary data source for Courses section
+  // Exams sheet columns:
+  // 1. course_id, 2. course_name, 3. semester, 4. year
+  // 5. mid_link, 6. final_link, 7. book_link, 8. outline_link
+  // 9. lecture_notes_link, 10. google_folder_link
   // Books & Outline page uses the same sheet and displays book_link and outline_link columns
+  // Courses section now displays all documents from EXAMS sheet
   SHEETS: {
     COURSES:
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=0&single=true&output=csv", // Paste published CSV URL for Courses sheet

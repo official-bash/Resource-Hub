@@ -19,6 +19,7 @@ const BASH = {
   init() {
     this.loadNavigation();
     this.setupTasksButton();
+    this.setupBackKeyHandler();
     this.loadPage("courses");
 
     this.setupSearch();
@@ -193,6 +194,32 @@ const BASH = {
       debounceTimer = setTimeout(() => {
         this.handleSearch(searchInput.value);
       }, 300);
+    });
+  },
+
+  setupBackKeyHandler() {
+    // Handle back button on mobile and browser back navigation
+    window.addEventListener("popstate", (event) => {
+      // Check if we're currently in courses section with breadcrumb navigation
+      if (this.currentPage === "courses" && this.breadcrumbPath.length > 0) {
+        // Move back one step in the breadcrumb path
+        event.preventDefault();
+        const lastItem = this.breadcrumbPath[this.breadcrumbPath.length - 1];
+        this.breadcrumbPath.pop();
+
+        if (this.breadcrumbPath.length === 0) {
+          // Go back to semester list
+          this.renderCoursesPage();
+        } else {
+          // Go back to the previous level
+          const prevItem = this.breadcrumbPath[this.breadcrumbPath.length - 1];
+          if (prevItem.action === "semester") {
+            this.openSemester(prevItem.data, false);
+          } else if (prevItem.action === "course") {
+            this.openCourse(prevItem.data, false);
+          }
+        }
+      }
     });
   },
 
