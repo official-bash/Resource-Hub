@@ -300,7 +300,9 @@ BASH.openCourse = function (course, pushHistory = true) {
 };
 
 BASH.openFile = function (file) {
-  BASH.openDocument(file.name, file.link);
+  if (file.link) {
+    window.open(file.link, "_blank");
+  }
 };
 
 BASH.updateBreadcrumb = function () {
@@ -360,6 +362,3 @@ BASH.filterCourses = function (query, filter) {
     card.style.display = matchesQuery && matchesFilter ? "" : "none";
   });
 };
-
-
-
