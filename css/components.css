@@ -50,8 +50,8 @@
 /* Course/Folder Grid */
 .course-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
 }
 
 .course-card {
@@ -102,6 +102,11 @@
 .icon-file {
     background: #F3E5F5;
     color: #9C27B0;
+}
+
+.icon-document {
+    background: #FFEBEE;
+    color: #C62828;
 }
 
 .course-card-info {
@@ -438,15 +443,73 @@
         font-size: 11px;
     }
 
-    .course-card {
-        width: 100%;
+    .course-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
 
-    .exam-card {
-        width: 100%;
-        margin-left: 0;
-        margin-right: 0;
+    .course-card {
+        padding: 14px;
+        gap: 10px;
     }
+
+    .course-card-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .course-card-name {
+        font-size: 13px;
+    }
+
+    .exam-links {
+        gap: 6px;
+    }
+
+    .exam-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .contact-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}
+
+@media (min-width: 640px) {
+    .course-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .course-card {
+        padding: 16px;
+    }
+}
+
+@media (min-width: 768px) {
+    .course-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .section-title {
+        font-size: 24px;
+    }
+
+    .breadcrumb {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+}
+
+.course-card {
+    width: 100%;
+}
+
+.exam-card {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
 }
 
 @media (max-width: 400px) {

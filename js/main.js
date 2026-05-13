@@ -20,6 +20,7 @@ const BASH = {
     this.loadNavigation();
     this.setupTasksButton();
     this.setupBackKeyHandler();
+    this.setupNotificationButton();
     this.loadPage("courses");
 
     this.setupSearch();
@@ -41,6 +42,20 @@ const BASH = {
     fabTasks.addEventListener("click", () => {
       this.openTasksModal();
     });
+  },
+
+  setupNotificationButton() {
+    const notificationBtn = document.getElementById("notificationBtn");
+    if (notificationBtn) {
+      notificationBtn.addEventListener("click", () => {
+        this.openNotificationsModal();
+      });
+    }
+  },
+
+  openNotificationsModal() {
+    // Placeholder for notifications modal
+    alert("📢 No new notifications at the moment!");
   },
 
   openTasksModal() {
@@ -195,6 +210,14 @@ const BASH = {
         this.handleSearch(searchInput.value);
       }, 300);
     });
+
+    // Handle Enter key for immediate search
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        clearTimeout(debounceTimer);
+        this.handleSearch(searchInput.value);
+      }
+    });
   },
 
   setupBackKeyHandler() {
@@ -246,11 +269,19 @@ const BASH = {
   },
 
   updateFilters(page) {
-    const filterContainer = document.getElementById("filterContainer");
-    filterContainer.innerHTML = "";
+    const filterBar = document.getElementById("filterBar");
+    if (!filterBar) return;
 
     const filterGroups = this.getFiltersForPage(page);
-    if (!filterGroups || filterGroups.length === 0) return;
+
+    // If no filters for this page, hide the filter bar
+    if (!filterGroups || filterGroups.length === 0) {
+      filterBar.style.display = "none";
+      return;
+    }
+
+    filterBar.style.display = "block";
+    filterBar.innerHTML = "";
 
     filterGroups.forEach((group) => {
       const groupDiv = document.createElement("div");
@@ -268,7 +299,7 @@ const BASH = {
         groupDiv.appendChild(chip);
       });
 
-      filterContainer.appendChild(groupDiv);
+      filterBar.appendChild(groupDiv);
     });
   },
 
