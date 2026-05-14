@@ -177,6 +177,7 @@ BASH.renderCoursesPage = async function () {
 BASH.displaySemesters = function (semesters, pushHistory = false) {
   this.breadcrumbPath = [];
   const container = document.getElementById("coursesContainer");
+  container.className = "course-grid grid-2-col";
   container.innerHTML = "";
 
   semesters.forEach((sem) => {
@@ -258,6 +259,7 @@ BASH.openSemester = function (semester, pushHistory = true) {
     history.pushState({ id: "folder", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
+  container.className = "course-grid grid-1-col";
   container.innerHTML = "";
 
   semester.courses.forEach((course) => {
@@ -277,6 +279,7 @@ BASH.openCourse = function (course, pushHistory = true) {
     history.pushState({ id: "course", page: "courses" }, "", "#courses");
   }
   const container = document.getElementById("coursesContainer");
+  container.className = "course-grid grid-2-col";
   container.innerHTML = "";
 
   // Display all documents for this course

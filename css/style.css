@@ -375,7 +375,7 @@ body {
     right: 16px;
     width: 56px;
     height: 56px;
-    border-radius: 50%;
+    border-radius: 0%;
     background: var(--bash-green);
     color: white;
     border: none;

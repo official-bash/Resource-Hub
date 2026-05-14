@@ -50,8 +50,15 @@
 /* Course/Folder Grid */
 .course-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
+}
+
+.grid-1-col {
+    grid-template-columns: 1fr !important;
+}
+
+.grid-2-col {
+    grid-template-columns: repeat(2, 1fr) !important;
 }
 
 .course-card {
@@ -444,7 +451,7 @@
     }
 
     .course-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
     }
 
     .course-card {
@@ -478,7 +485,7 @@
 
 @media (min-width: 640px) {
     .course-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
     }
 
     .course-card {
@@ -488,7 +495,7 @@
 
 @media (min-width: 768px) {
     .course-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
     }
 
     .section-title {
@@ -513,7 +520,7 @@
 }
 
 @media (max-width: 400px) {
-    .course-grid {
-        grid-template-columns: 1fr;
+    .grid-2-col {
+        grid-template-columns: 1fr !important;
     }
 }

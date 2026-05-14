@@ -12,8 +12,8 @@ const BASH_CONFIG = {
   // Books & Outline page uses the same sheet and displays book_link and outline_link columns
   // Courses section now displays all documents from EXAMS sheet
   SHEETS: {
-    COURSES:
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=0&single=true&output=csv", // Paste published CSV URL for Courses sheet
+    NOTIFICATIONS:
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=0&single=true&output=csv", // Paste published CSV URL for Notifications sheet
     EXAMS:
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1461535919&single=true&output=csv", // Paste published CSV URL for Exams sheet
     TASKS:
@@ -25,11 +25,11 @@ const BASH_CONFIG = {
 
   // Social Links
   SOCIAL: {
-    whatsapp: "https://wa.me/923142541678",
+    whatsapp: "https://whatsapp.com/channel/0029VbC1BjbDzgT9UrefoL2Q",
     linkedin: "#",
-    instagram: "#",
+    instagram: "https://www.instagram.com/bash.official.pk/",
     email: "bash.official",
-    github: "#",
+    github: "https://github.com/official-bash",
     kaggle: "#",
   },
 

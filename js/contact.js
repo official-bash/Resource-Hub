@@ -4,11 +4,11 @@ BASH.renderContactPage = function() {
     const socialLinks = [
         { name: 'WhatsApp', icon: 'fab fa-whatsapp', link: BASH_CONFIG.SOCIAL.whatsapp, color: '#25D366' },
         { name: 'WhatsApp Channel', icon: 'fab fa-whatsapp', link: BASH_CONFIG.SOCIAL.whatsapp, color: '#25D366' },
-        { name: 'LinkedIn', icon: 'fab fa-linkedin', link: BASH_CONFIG.SOCIAL.linkedin, color: '#0077B5' },
+        // { name: 'LinkedIn', icon: 'fab fa-linkedin', link: BASH_CONFIG.SOCIAL.linkedin, color: '#0077B5' },
         { name: 'Instagram', icon: 'fab fa-instagram', link: BASH_CONFIG.SOCIAL.instagram, color: '#E4405F' },
         { name: 'Email', icon: 'fas fa-envelope', link: BASH_CONFIG.SOCIAL.email, color: '#D44638' },
         { name: 'GitHub', icon: 'fab fa-github', link: BASH_CONFIG.SOCIAL.github, color: '#333333' },
-        { name: 'Kaggle', icon: 'fab fa-kaggle', link: BASH_CONFIG.SOCIAL.kaggle, color: '#20BEFF' }
+        // { name: 'Kaggle', icon: 'fab fa-kaggle', link: BASH_CONFIG.SOCIAL.kaggle, color: '#20BEFF' }
     ];
     
     
