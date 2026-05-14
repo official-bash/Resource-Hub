@@ -1,3 +1,36 @@
+// CSV Parser helper - handles quoted values properly
+BASH.parseCSVLine = function (line) {
+  const result = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i++;
+      } else {
+        // Toggle quote state
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === "," && !insideQuotes) {
+      // Field separator
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  // Add last field
+  result.push(current.trim());
+  return result;
+};
+
 // Get courses data from EXAMS sheet (new data structure)
 BASH.fetchCourses = async function () {
   // Fetch from EXAMS sheet to get course documents
@@ -14,6 +47,7 @@ BASH.fetchCourses = async function () {
     const csvText = await response.text();
     this.data.courses = this.parseCoursesFromExams(csvText);
     this.coursesError = null;
+    console.log("Courses loaded successfully:", this.data.courses);
     return this.data.courses;
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -30,7 +64,7 @@ BASH.parseCoursesFromExams = function (csv) {
   const semesters = {};
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.trim());
+    const values = this.parseCSVLine(lines[i]);
     if (values.length < 4) continue;
 
     const courseId = values[0];
