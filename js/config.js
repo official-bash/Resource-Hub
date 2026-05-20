@@ -26,7 +26,7 @@ const BASH_CONFIG = {
 
   // Drive click logger — Apps Script Web App /exec URL (deploy with access: Anyone)
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
-  LOGGER_URL: "https://script.google.com/macros/s/AKfycbyCuM_kMHcChTycImOeg3UwaGw1nnXp8Bl8OJ9e2cv-ZHoUGpblDkhHwFCeuRSzNfHipA/exec",
+  LOGGER_URL: "https://script.google.com/macros/s/AKfycbyvYRBXnVxx4rEwRjvpGDBvXaqNx4T3vXMQP7oTBm1i/dev",
 
   // WhatsApp Number for Contribution
   WHATSAPP_NUMBER: "923142541678",
