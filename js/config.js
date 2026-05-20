@@ -12,6 +12,7 @@ const BASH_CONFIG = {
   // Books & Outline page uses the same sheet and displays book_link and outline_link columns
   // Courses section now displays all documents from EXAMS sheet
   SHEETS: {
+    // Notifications columns: heading, short_description, detail, link, updated
     NOTIFICATIONS:
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=0&single=true&output=csv", // Paste published CSV URL for Notifications sheet
     EXAMS:
@@ -19,6 +20,9 @@ const BASH_CONFIG = {
     TASKS:
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1468460687&single=true&output=csv", // Paste published CSV URL for Tasks sheet
   },
+
+  // Registration Form
+  REGISTER_FORM: "https://forms.gle/mmjderNyoYmzHhzq6",
 
   // WhatsApp Number for Contribution
   WHATSAPP_NUMBER: "923142541678",

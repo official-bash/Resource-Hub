@@ -78,6 +78,45 @@ body {
     align-items: center;
 }
 
+.register-btn-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bash-green);
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.register-btn-top:hover {
+    background: #236B43;
+    color: white;
+}
+
+.register-btn-top:active {
+    transform: scale(0.97);
+}
+
+.register-btn-top i {
+    font-size: 14px;
+}
+
+@media (max-width: 400px) {
+    .register-btn-top span {
+        display: none;
+    }
+
+    .register-btn-top {
+        padding: 8px 10px;
+    }
+}
+
 .search-container {
     display: flex;
     align-items: center;

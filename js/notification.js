@@ -4,7 +4,6 @@ const Notification = {
     notificationsCSV: null,
   },
 
-  // Setup notification button click handler
   setupNotificationButton() {
     const notificationBtn = document.getElementById("notificationBtn");
     if (notificationBtn) {
@@ -12,9 +11,13 @@ const Notification = {
         this.openNotificationsModal();
       });
     }
+
+    const registerBtn = document.getElementById("registerTopBtn");
+    if (registerBtn && BASH_CONFIG.REGISTER_FORM) {
+      registerBtn.href = BASH_CONFIG.REGISTER_FORM;
+    }
   },
 
-  // Fetch and update notification badge count
   async updateNotificationBadge() {
     if (BASH_CONFIG.SHEETS.NOTIFICATIONS) {
       try {
@@ -22,7 +25,6 @@ const Notification = {
         if (response.ok) {
           const csvText = await response.text();
           const lines = csvText.trim().split("\n");
-          // header row = 1, so lines.length - 1 notifications
           const count = lines.length > 1 ? lines.length - 1 : 0;
           const notifBadge = document.getElementById("notificationBadge");
           if (notifBadge) {
@@ -37,14 +39,12 @@ const Notification = {
     }
   },
 
-  // Open notification modal and render notifications
   openNotificationsModal() {
-    // Check if modal already exists
     let modal = document.getElementById("notificationsModal");
     if (!modal) {
       modal = document.createElement("div");
       modal.id = "notificationsModal";
-      modal.className = "tasks-modal"; // Reusing tasks modal styling
+      modal.className = "tasks-modal";
       modal.innerHTML = `
                 <div class="modal-overlay" id="notifModalOverlay"></div>
                 <div class="modal-container">
@@ -69,68 +69,179 @@ const Notification = {
         .addEventListener("click", () => {
           modal.style.display = "none";
         });
+
+      document
+        .getElementById("notificationsModalContent")
+        .addEventListener("click", (e) => {
+          const item = e.target.closest(".notif-item");
+          if (!item || e.target.closest("a")) return;
+          const expanded = item.classList.toggle("notif-item--expanded");
+          const chevron = item.querySelector(".notif-item-chevron i");
+          if (chevron) {
+            chevron.className = expanded
+              ? "fas fa-chevron-up"
+              : "fas fa-chevron-down";
+          }
+        });
     }
 
     modal.style.display = "flex";
     this.renderNotifications();
   },
 
-  // Render notifications from CSV data
+  parseCSVLine(line) {
+    const values =
+      line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(",");
+    return values.map((v) => v.replace(/^"|"$/g, "").trim());
+  },
+
+  getColumnValue(headers, values, ...names) {
+    for (const name of names) {
+      const idx = headers.findIndex((h) => h.includes(name));
+      if (idx !== -1 && values[idx]) return values[idx];
+    }
+    return "";
+  },
+
+  formatDisplayText(text) {
+    return text.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  parseNotificationRow(headers, values) {
+    let heading = this.getColumnValue(
+      headers,
+      values,
+      "heading",
+      "title",
+    );
+    let shortDescription = this.getColumnValue(
+      headers,
+      values,
+      "short_description",
+      "short description",
+      "summary",
+    );
+    let detail = this.getColumnValue(
+      headers,
+      values,
+      "detail",
+      "details",
+      "body",
+    );
+    const link = this.getColumnValue(
+      headers,
+      values,
+      "link",
+      "whatsapp",
+      "url",
+    );
+    const date = this.getColumnValue(
+      headers,
+      values,
+      "updated",
+      "date_updated",
+      "date",
+    );
+
+    const legacyMessage = this.getColumnValue(
+      headers,
+      values,
+      "notification",
+      "message",
+    );
+
+    if (!heading && legacyMessage) {
+      heading = legacyMessage;
+    }
+    if (!heading && values[0]) {
+      heading = values[0];
+    }
+
+    if (!detail && legacyMessage && legacyMessage !== heading) {
+      detail = legacyMessage;
+    }
+    if (!detail) {
+      detail = heading;
+    }
+
+    if (!shortDescription && detail && detail !== heading) {
+      shortDescription =
+        detail.length > 100 ? detail.slice(0, 97) + "..." : detail;
+    }
+
+    return {
+      heading: this.formatDisplayText(heading || "Notification"),
+      shortDescription: shortDescription
+        ? this.formatDisplayText(shortDescription)
+        : "",
+      detail: this.formatDisplayText(detail || heading || ""),
+      link,
+      date,
+    };
+  },
+
   renderNotifications() {
     const content = document.getElementById("notificationsModalContent");
-    if (this.data.notificationsCSV) {
-      const lines = this.data.notificationsCSV.trim().split("\n");
-      if (lines.length > 1) {
-        let html =
-          '<div style="display:flex; flex-direction:column; gap:10px;">';
-
-        // Parse header row - handle quoted values
-        const headerMatches =
-          lines[0].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) ||
-          lines[0].split(",");
-        const headers = headerMatches.map((h) =>
-          h.replace(/^"|"$/g, "").trim().toLowerCase(),
-        );
-
-        for (let i = 1; i < lines.length; i++) {
-          // Parse CSV line correctly handling quotes if necessary,
-          // but standard split is fine for simple text without commas.
-          // Simple parsing:
-          const values =
-            lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) ||
-            lines[i].split(",");
-          const cleanValues = values.map((v) => v.replace(/^"|"$/g, "").trim());
-
-          let message = cleanValues[0] || "Notification"; // Default to first column
-
-          // Try to find a notification column
-          const notifIdx = headers.findIndex(
-            (h) => h.includes("notification") || h.includes("message"),
-          );
-          if (notifIdx !== -1 && cleanValues[notifIdx]) {
-            message = cleanValues[notifIdx];
-          }
-
-          let link = null;
-          const linkIdx = headers.findIndex(
-            (h) => h.includes("link") || h.includes("whatsapp"),
-          );
-          if (linkIdx !== -1 && cleanValues[linkIdx]) {
-            link = cleanValues[linkIdx];
-          }
-
-          html += `<div class="task-card fade-in" style="border-top: 4px solid var(--bash-green);">
-                    <div class="task-title" style="margin-bottom:0; font-size: 15px;">${message}</div>
-                    ${link ? `<a href="${link}" target="_blank" style="display:inline-block; margin-top:10px; color:var(--bash-green); font-size:13px; font-weight:600; text-decoration:none;"><i class="fas fa-external-link-alt"></i> Open Link</a>` : ""}
-                </div>`;
-        }
-        html += "</div>";
-        content.innerHTML = html;
-      } else {
-        content.innerHTML = `<div class="empty-state"><h3>No Notifications</h3><p>You're all caught up!</p></div>`;
-      }
-    } else {
+    if (!this.data.notificationsCSV) {
       content.innerHTML = `<div class="empty-state"><h3>Unable to Load</h3><p>Could not fetch notifications.</p></div>`;
+      return;
     }
+
+    const lines = this.data.notificationsCSV.trim().split("\n");
+    if (lines.length <= 1) {
+      content.innerHTML = `<div class="empty-state"><h3>No Notifications</h3><p>You're all caught up!</p></div>`;
+      return;
+    }
+
+    const headerMatches =
+      lines[0].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) ||
+      lines[0].split(",");
+    const headers = headerMatches.map((h) =>
+      h.replace(/^"|"$/g, "").trim().toLowerCase(),
+    );
+
+    let html = '<div class="notif-list">';
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCSVLine(lines[i]);
+      const row = this.parseNotificationRow(headers, values);
+
+      html += `
+        <div class="notif-item fade-in" role="button" tabindex="0" aria-expanded="false">
+          <div class="notif-item-header">
+            <div class="notif-item-summary">
+              <h3 class="notif-item-heading">${this.escapeHtml(row.heading)}</h3>
+              ${
+                row.shortDescription
+                  ? `<p class="notif-item-short">${this.escapeHtml(row.shortDescription)}</p>`
+                  : ""
+              }
+            </div>
+            <span class="notif-item-chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+          </div>
+          <div class="notif-item-body">
+            <p class="notif-item-detail">${this.escapeHtml(row.detail)}</p>
+            ${
+              row.link
+                ? `<a href="${this.escapeHtml(row.link)}" target="_blank" rel="noopener noreferrer" class="notif-item-link"><i class="fas fa-external-link-alt"></i> Open Link</a>`
+                : ""
+            }
+            ${
+              row.date
+                ? `<p class="notif-item-date"><i class="fas fa-clock"></i> Updated: ${this.escapeHtml(row.date)}</p>`
+                : ""
+            }
+          </div>
+        </div>`;
+    }
+
+    html += "</div>";
+    content.innerHTML = html;
   },
 };
