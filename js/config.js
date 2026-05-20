@@ -24,7 +24,8 @@ const BASH_CONFIG = {
   // Registration Form
   REGISTER_FORM: "https://forms.gle/mmjderNyoYmzHhzq6",
 
-  // Drive click logger (Google Apps Script Web App URL)
+  // Drive click logger — Apps Script Web App /exec URL (deploy with access: Anyone)
+  // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
   LOGGER_URL: "https://script.google.com/macros/s/AKfycbyCuM_kMHcChTycImOeg3UwaGw1nnXp8Bl8OJ9e2cv-ZHoUGpblDkhHwFCeuRSzNfHipA/exec",
 
   // WhatsApp Number for Contribution

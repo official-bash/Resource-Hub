@@ -50,7 +50,7 @@ BASH.renderLectureNotesPage = async function () {
         <div class="exam-links">
           ${
             exam.lecture_notes_link
-              ? `<a href="${exam.lecture_notes_link}" target="_blank" class="exam-btn btn-notes">
+              ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.lecture_notes_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Lecture Notes" target="_blank" class="exam-btn btn-notes">
                   <i class="fas fa-file-pdf"></i> Lecture Notes
                 </a>`
               : `<div class="missing-container">
@@ -71,6 +71,7 @@ BASH.renderLectureNotesPage = async function () {
 
   html += "</div>";
   mainContent.innerHTML = html;
+  this.setupDriveLinkHandlers(document.getElementById("lectureNotesContainer"));
 };
 
 BASH.filterLectureNotes = function (query, filters) {

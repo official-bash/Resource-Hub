@@ -63,6 +63,14 @@ const BASH = {
     this.saveUserEmail(email);
   },
 
+  isLoggerDebug() {
+    try {
+      return localStorage.getItem("bash_debug") === "1";
+    } catch {
+      return false;
+    }
+  },
+
   logDriveClick(email, courseName, folderName, driveLink) {
     const loggerUrl = BASH_CONFIG.LOGGER_URL;
     if (!loggerUrl || !driveLink) return;
@@ -75,12 +83,36 @@ const BASH = {
     });
 
     const url = `${loggerUrl}?${params.toString()}`;
+    const debug = this.isLoggerDebug();
+
+    if (debug) {
+      console.log("[BASH Logger] sending", {
+        email,
+        courseName,
+        folderName,
+        driveLink,
+      });
+    }
+
+    try {
+      fetch(url, { mode: "no-cors", keepalive: true }).catch((err) => {
+        if (debug) console.warn("[BASH Logger] fetch failed", err);
+      });
+    } catch (err) {
+      if (debug) console.warn("[BASH Logger] fetch error", err);
+    }
 
     try {
       const img = new Image();
+      img.onerror = () => {
+        if (debug) console.warn("[BASH Logger] image beacon failed", url);
+      };
+      img.onload = () => {
+        if (debug) console.log("[BASH Logger] request dispatched", url);
+      };
       img.src = url;
-    } catch {
-      /* silent */
+    } catch (err) {
+      if (debug) console.warn("[BASH Logger] image beacon error", err);
     }
   },
 
