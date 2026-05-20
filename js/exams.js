@@ -97,7 +97,7 @@ BASH.renderExamsPage = async function () {
                 <div class="exam-links">
                     ${
                       exam.mid_link
-                        ? `<a href="${exam.mid_link}" target="_blank" class="exam-btn btn-mid">
+                        ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.mid_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Mid Term" target="_blank" class="exam-btn btn-mid">
                             <i class="fas fa-file-pdf"></i> Mid Term
                         </a>`
                         : `<div class="missing-container">
@@ -113,7 +113,7 @@ BASH.renderExamsPage = async function () {
                     }
                     ${
                       exam.final_link
-                        ? `<a href="${exam.final_link}" target="_blank" class="exam-btn btn-final">
+                        ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.final_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Final" target="_blank" class="exam-btn btn-final">
                             <i class="fas fa-file-pdf"></i> Final
                         </a>`
                         : `<div class="missing-container">
@@ -134,6 +134,7 @@ BASH.renderExamsPage = async function () {
 
   html += "</div>";
   mainContent.innerHTML = html;
+  this.setupDriveLinkHandlers(document.getElementById("examsContainer"));
 };
 
 BASH.filterExams = function (query, filters) {

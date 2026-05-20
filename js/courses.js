@@ -337,9 +337,10 @@ BASH.openCourse = function (course, pushHistory = true) {
 };
 
 BASH.openFile = function (file) {
-  if (file.link) {
-    window.open(file.link, "_blank");
-  }
+  if (!file.link) return;
+  const courseName = this.getActiveCourseName();
+  const folderName = file.name || file.title || "";
+  BASH.openDriveLink(file.link, courseName, folderName);
 };
 
 BASH.updateBreadcrumb = function () {

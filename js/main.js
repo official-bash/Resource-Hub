@@ -17,6 +17,7 @@ const BASH = {
   breadcrumbPath: [],
 
   init() {
+    this.initUserEmailFromUrl();
     this.loadNavigation();
     this.setupTasksButton();
     this.setupBackKeyHandler();
@@ -25,6 +26,95 @@ const BASH = {
     this.loadPage("courses");
     this.setupSearch();
     this.updateBadges();
+  },
+
+  getUserEmail() {
+    try {
+      const email = localStorage.getItem("bash_user_email");
+      return email && email.trim() ? email.trim() : "anonymous";
+    } catch {
+      return "anonymous";
+    }
+  },
+
+  saveUserEmail(email) {
+    if (!email || typeof email !== "string") return;
+    const trimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return;
+    try {
+      localStorage.setItem("bash_user_email", trimmed);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  },
+
+  initUserEmailFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      const email = params.get("bash_email") || params.get("email");
+      if (email) this.saveUserEmail(email);
+      const clean = window.location.pathname + (window.location.hash || "");
+      history.replaceState({}, "", clean);
+    }
+  },
+
+  /** Call after your registration/form verification succeeds */
+  onEmailVerified(email) {
+    this.saveUserEmail(email);
+  },
+
+  logDriveClick(email, courseName, folderName, driveLink) {
+    const loggerUrl = BASH_CONFIG.LOGGER_URL;
+    if (!loggerUrl || !driveLink) return;
+
+    const params = new URLSearchParams({
+      email: email || "anonymous",
+      courseName: courseName || "",
+      folderName: folderName || "",
+      driveLink: driveLink || "",
+    });
+
+    const url = `${loggerUrl}?${params.toString()}`;
+
+    try {
+      const img = new Image();
+      img.src = url;
+    } catch {
+      /* silent */
+    }
+  },
+
+  openDriveLink(driveLink, courseName, folderName) {
+    if (!driveLink) return;
+    this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
+    window.open(driveLink, "_blank");
+  },
+
+  escapeAttr(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+  },
+
+  setupDriveLinkHandlers(container) {
+    if (!container) return;
+    container.querySelectorAll("[data-drive-link]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        const link = el.getAttribute("data-drive-link") || "";
+        this.openDriveLink(
+          link,
+          el.dataset.courseName || "",
+          el.dataset.folderName || "",
+        );
+      });
+    });
+  },
+
+  getActiveCourseName() {
+    const course = this.breadcrumbPath.find((p) => p.action === "course");
+    return course ? course.name : "";
   },
 
   setupContributeButton() {

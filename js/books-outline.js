@@ -51,7 +51,7 @@ BASH.renderBooksOutlinePage = async function () {
         <div class="exam-links">
           ${
             exam.book_link
-              ? `<a href="${exam.book_link}" target="_blank" class="exam-btn btn-book">
+              ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.book_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Book" target="_blank" class="exam-btn btn-book">
                   <i class="fas fa-book"></i> Book
                 </a>`
               : `<div class="missing-container">
@@ -67,7 +67,7 @@ BASH.renderBooksOutlinePage = async function () {
           }
           ${
             exam.outline_link
-              ? `<a href="${exam.outline_link}" target="_blank" class="exam-btn btn-outline">
+              ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.outline_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Outline" target="_blank" class="exam-btn btn-outline">
                   <i class="fas fa-file-alt"></i> Outline
                 </a>`
               : `<div class="missing-container">
@@ -88,6 +88,7 @@ BASH.renderBooksOutlinePage = async function () {
 
   html += "</div>";
   mainContent.innerHTML = html;
+  this.setupDriveLinkHandlers(document.getElementById("booksContainer"));
 };
 
 BASH.filterBooksOutline = function (query, filters) {

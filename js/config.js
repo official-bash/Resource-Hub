@@ -24,6 +24,9 @@ const BASH_CONFIG = {
   // Registration Form
   REGISTER_FORM: "https://forms.gle/mmjderNyoYmzHhzq6",
 
+  // Drive click logger (Google Apps Script Web App URL)
+  LOGGER_URL: "https://script.google.com/macros/s/AKfycbyCuM_kMHcChTycImOeg3UwaGw1nnXp8Bl8OJ9e2cv-ZHoUGpblDkhHwFCeuRSzNfHipA/exec",
+
   // WhatsApp Number for Contribution
   WHATSAPP_NUMBER: "923142541678",
 
