@@ -6,13 +6,47 @@ BASH.escapeHtml = function (str) {
 };
 
 BASH.fetchContributors = async function () {
-  if (!BASH_CONFIG.SHEETS.CONTRIBUTORS) {
+  const hasDualConfig = BASH_CONFIG.SHEETS.CONTRIBUTORS_PROFILES && BASH_CONFIG.SHEETS.CONTRIBUTORS_ACTIVITIES;
+
+  if (hasDualConfig) {
+    try {
+      const [profilesRes, activitiesRes] = await Promise.all([
+        fetch(BASH_CONFIG.SHEETS.CONTRIBUTORS_PROFILES),
+        fetch(BASH_CONFIG.SHEETS.CONTRIBUTORS_ACTIVITIES)
+      ]);
+
+      if (!profilesRes.ok) throw new Error(`Profiles HTTP ${profilesRes.status}`);
+      if (!activitiesRes.ok) throw new Error(`Activities HTTP ${activitiesRes.status}`);
+
+      const profilesText = await profilesRes.text();
+      const activitiesText = await activitiesRes.text();
+
+      const profiles = this.parseProfilesCSV(profilesText);
+      const activities = this.parseActivitiesCSV(activitiesText);
+
+      this.data.contributors = this.combineProfilesAndActivities(profiles, activities);
+      this.contributorsError = null;
+      return this.data.contributors;
+    } catch (error) {
+      console.error("Error fetching dual-sheet contributors:", error);
+      // Fallback if dual-sheet fetch fails, try old CONTRIBUTORS if available
+      if (BASH_CONFIG.SHEETS.CONTRIBUTORS) {
+        return this.fetchContributorsFallback();
+      }
+      this.data.contributors = [];
+      this.contributorsError = "Failed to load contributors. Check the sheet URLs in config.js.";
+      return this.data.contributors;
+    }
+  } else if (BASH_CONFIG.SHEETS.CONTRIBUTORS) {
+    return this.fetchContributorsFallback();
+  } else {
     this.data.contributors = [];
-    this.contributorsError =
-      "No contributors data source configured. Add the published CSV URL in config.js.";
+    this.contributorsError = "No contributors data source configured. Add the published CSV URLs in config.js.";
     return this.data.contributors;
   }
+};
 
+BASH.fetchContributorsFallback = async function () {
   try {
     const response = await fetch(BASH_CONFIG.SHEETS.CONTRIBUTORS);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -21,10 +55,9 @@ BASH.fetchContributors = async function () {
     this.contributorsError = null;
     return this.data.contributors;
   } catch (error) {
-    console.error("Error fetching contributors:", error);
+    console.error("Error fetching fallback contributors:", error);
     this.data.contributors = [];
-    this.contributorsError =
-      "Failed to load contributors. Check the sheet URL in config.js.";
+    this.contributorsError = "Failed to load contributors. Check the sheet URL in config.js.";
     return this.data.contributors;
   }
 };
@@ -47,6 +80,158 @@ BASH.getContributorColumn = function (headers, values, aliases) {
     }
   }
   return "";
+};
+
+BASH.parseProfilesCSV = function (csv) {
+  const lines = csv.trim().split("\n");
+  if (lines.length < 2) return [];
+
+  const headers = this.parseCSVLine(lines[0]).map((h) => h.trim());
+  const profiles = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = this.parseCSVLine(lines[i]);
+    if (values.length < 2) continue;
+
+    const id = this.getContributorColumn(headers, values, ["uniqueid", "id"]);
+    const name = this.getContributorColumn(headers, values, [
+      "name",
+      "contributor",
+      "studentname",
+    ]);
+
+    if (!id || !name) continue;
+
+    profiles.push({
+      id: id.trim(),
+      name: name.trim(),
+      email: this.getContributorColumn(headers, values, ["email", "e-mail"]),
+      linkedin: this.getContributorColumn(headers, values, [
+        "linkedin",
+        "linkdin",
+        "linkdIN",
+      ]),
+      profile: this.getContributorColumn(headers, values, [
+        "profile",
+        "profilelink",
+        "photolink",
+        "photo",
+      ]),
+      semester: this.getContributorColumn(headers, values, ["semester", "sem"]),
+    });
+  }
+
+  return profiles;
+};
+
+BASH.parseActivitiesCSV = function (csv) {
+  const lines = csv.trim().split("\n");
+  if (lines.length < 2) return [];
+
+  const headers = this.parseCSVLine(lines[0]).map((h) => h.trim());
+  const activities = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = this.parseCSVLine(lines[i]);
+    if (values.length < 2) continue;
+
+    const id = this.getContributorColumn(headers, values, ["uniqueid", "id"]);
+    if (!id) continue;
+
+    const pointsRaw = this.getContributorColumn(headers, values, [
+      "point",
+      "points",
+      "score",
+    ]);
+    const points = parseFloat(pointsRaw) || 0;
+
+    activities.push({
+      id: id.trim(),
+      dateAdded: this.getContributorColumn(headers, values, [
+        "date",
+        "dateadded",
+        "added",
+      ]),
+      points,
+      topic: this.getContributorColumn(headers, values, [
+        "topiccontributions",
+        "topic",
+        "contributiontopic",
+        "contribution",
+      ]),
+      fileLink: this.getContributorColumn(headers, values, [
+        "linkofthecontributedfile",
+        "linkofcontributedfile",
+        "filelink",
+        "link",
+      ]),
+    });
+  }
+
+  return activities;
+};
+
+BASH.combineProfilesAndActivities = function (profiles, activities) {
+  const people = new Map();
+
+  profiles.forEach((profile) => {
+    const key = String(profile.id).toLowerCase().trim();
+    if (!key) return;
+
+    const personId = key.replace(/[^a-z0-9]+/gi, "-");
+    people.set(key, {
+      id: personId,
+      uniqueId: profile.id,
+      name: profile.name,
+      email: profile.email,
+      linkedin: profile.linkedin,
+      profile: profile.profile,
+      semester: profile.semester,
+      totalPoints: 0,
+      contributions: [],
+    });
+  });
+
+  activities.forEach((activity) => {
+    const key = String(activity.id).toLowerCase().trim();
+    if (!key) return;
+
+    if (!people.has(key)) {
+      const personId = key.replace(/[^a-z0-9]+/gi, "-");
+      people.set(key, {
+        id: personId,
+        uniqueId: activity.id,
+        name: `Contributor ${activity.id}`,
+        email: "",
+        linkedin: "",
+        profile: "",
+        semester: "",
+        totalPoints: 0,
+        contributions: [],
+      });
+    }
+
+    const person = people.get(key);
+    person.totalPoints += activity.points;
+    person.contributions.push({
+      topic: activity.topic || "Contribution",
+      dateAdded: activity.dateAdded,
+      semester: person.semester,
+      points: activity.points,
+      fileLink: activity.fileLink,
+    });
+  });
+
+  return Array.from(people.values())
+    .map((p) => {
+      p.contributions.sort((a, b) => {
+        const da = a.dateAdded ? new Date(a.dateAdded) : 0;
+        const db = b.dateAdded ? new Date(b.dateAdded) : 0;
+        return db - da;
+      });
+      return p;
+    })
+    .sort((a, b) => b.totalPoints - a.totalPoints);
 };
 
 BASH.parseContributorsCSV = function (csv) {
@@ -157,13 +342,21 @@ BASH.aggregateContributors = function (rows) {
 };
 
 BASH.getTopContributors = function (limit = 3) {
-  const rows = this.data.contributors || [];
-  return this.aggregateContributors(rows).slice(0, limit);
+  const contributors = this.data.contributors || [];
+  const isAggregated = contributors.length > 0 && contributors[0] && Array.isArray(contributors[0].contributions);
+  if (isAggregated) {
+    return contributors.slice(0, limit);
+  }
+  return this.aggregateContributors(contributors).slice(0, limit);
 };
 
 BASH.getContributorById = function (id) {
-  const rows = this.data.contributors || [];
-  return this.aggregateContributors(rows).find((p) => p.id === id) || null;
+  const contributors = this.data.contributors || [];
+  const isAggregated = contributors.length > 0 && contributors[0] && Array.isArray(contributors[0].contributions);
+  if (isAggregated) {
+    return contributors.find((p) => p.id === id) || null;
+  }
+  return this.aggregateContributors(contributors).find((p) => p.id === id) || null;
 };
 
 BASH.contributorAvatarHtml = function (person, sizeClass) {
@@ -305,11 +498,21 @@ BASH.renderContributorDetailPage = async function (id) {
         ? c.semester
         : `Sem ${c.semester}`
       : "";
+
+    const fileLinkHtml = c.fileLink
+      ? `<div class="contribution-file-wrap">
+           <a href="${this.escapeHtml(c.fileLink)}" target="_blank" rel="noopener noreferrer" class="contribution-file-link">
+             <i class="fas fa-external-link-alt"></i> View Contributed File
+           </a>
+         </div>`
+      : "";
+
     contributionsHtml += `
       <li class="contribution-entry">
         <div class="contribution-entry-main">
           <h4 class="contribution-topic">${this.escapeHtml(c.topic || "Contribution")}</h4>
           ${c.dateAdded ? `<p class="contribution-date"><i class="fas fa-calendar-alt"></i> ${this.escapeHtml(c.dateAdded)}</p>` : ""}
+          ${fileLinkHtml}
         </div>
         <div class="contribution-entry-meta">
           ${sem ? `<span class="contribution-sem">${this.escapeHtml(sem)}</span>` : ""}

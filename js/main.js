@@ -26,6 +26,7 @@ const BASH = {
     this.setupEmailTopBar();
     this.loadNavigation();
     this.setupTasksButton();
+    this.setupContactTopButton();
     this.setupBackKeyHandler();
     Notification.setupNotificationButton();
     this.setupContributeButton();
@@ -356,10 +357,19 @@ const BASH = {
   },
 
   setupContributeButton() {
-    const contributeTopBtn = document.getElementById("contributeTopBtn");
-    if (contributeTopBtn) {
-      contributeTopBtn.addEventListener("click", () => {
+    const contributeNavBtn = document.getElementById("contributeNavBtn");
+    if (contributeNavBtn) {
+      contributeNavBtn.addEventListener("click", () => {
         this.navigateTo("contribute");
+      });
+    }
+  },
+
+  setupContactTopButton() {
+    const contactTopBtn = document.getElementById("contactTopBtn");
+    if (contactTopBtn) {
+      contactTopBtn.addEventListener("click", () => {
+        this.navigateTo("contact");
       });
     }
   },
@@ -404,6 +414,7 @@ const BASH = {
 
   setupTasksButton() {
     const fabTasks = document.getElementById("fabTasks");
+    if (!fabTasks || fabTasks.classList.contains("visually-hidden")) return;
     fabTasks.addEventListener("click", () => {
       this.openTasksModal();
     });
@@ -512,6 +523,16 @@ const BASH = {
     document.querySelectorAll(".nav-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.page === page);
     });
+
+    const contributeNavBtn = document.getElementById("contributeNavBtn");
+    if (contributeNavBtn) {
+      contributeNavBtn.classList.toggle("active", page === "contribute");
+    }
+
+    const contactTopBtn = document.getElementById("contactTopBtn");
+    if (contactTopBtn) {
+      contactTopBtn.classList.toggle("active", page === "contact");
+    }
 
     this.currentPage = page;
     if (page !== "contribute") {

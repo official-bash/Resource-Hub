@@ -22,6 +22,11 @@ const BASH_CONFIG = {
     // Contributors columns: name, Email, linkdIN, Profile (link), semester, points, date added, contribution topic
     // Points are summed per person (by email, or name if no email) for the Top 3 ranking
     CONTRIBUTORS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1836716982&single=true&output=csv", // Paste published CSV URL for Contributors sheet (File → Share → Publish to web → CSV)
+    // New dual-sheet contributor setup:
+    // Profiles sheet columns: unique id, name, Email, linkdIN, Profile (link), semester
+    CONTRIBUTORS_PROFILES: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1836716982&single=true&output=csv", // Paste published CSV URL for Profiles sheet
+    // Activities sheet columns: unique id, date, point, topic contributions, link of the contributed file
+    CONTRIBUTORS_ACTIVITIES: "", // Paste published CSV URL for Activities/Contributions sheet (e.g. gid=xxxxx)
   },
 
   // Registration Form

@@ -1075,3 +1075,28 @@
         grid-template-columns: 1fr !important;
     }
 }
+
+/* Contribution File Link Styling */
+.contribution-file-wrap {
+    margin-top: 8px;
+}
+
+.contribution-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--bash-green);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.contribution-file-link:hover {
+    color: #1b5e3a;
+    text-decoration: underline;
+}
+
+.contribution-file-link i {
+    font-size: 12px;
+}
