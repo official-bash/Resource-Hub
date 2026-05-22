@@ -26,7 +26,7 @@ const BASH_CONFIG = {
     // Profiles sheet columns: unique id, name, Email, linkdIN, Profile (link), semester
     CONTRIBUTORS_PROFILES: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1836716982&single=true&output=csv", // Paste published CSV URL for Profiles sheet
     // Activities sheet columns: unique id, date, point, topic contributions, link of the contributed file
-    CONTRIBUTORS_ACTIVITIES: "", // Paste published CSV URL for Activities/Contributions sheet (e.g. gid=xxxxx)
+    CONTRIBUTORS_ACTIVITIES: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1477492571&single=true&output=csv", // Paste published CSV URL for Activities/Contributions sheet (e.g. gid=xxxxx)
   },
 
   // Registration Form
