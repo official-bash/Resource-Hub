@@ -65,7 +65,9 @@ After registration/form verification, store the user’s email:
 - Redirect back to the site with `?verified=1&bash_email=user@example.com` (handled on load), or
 - Call `BASH.onEmailVerified(email)` from your verification code.
 
-The email is saved in `localStorage` as `bash_user_email`. Drive logs use it, or `anonymous` if missing.
+The email is saved in `localStorage` as `bash_user_email`. On first visit, users are prompted to enter the same email they used on the registration form. Drive links require a saved email before opening.
+
+Optional: publish your **registration form responses** sheet as CSV and set `VERIFIED_EMAILS` in `js/config.js` so only registered addresses are accepted.
 
 ## 5. Verify deployment
 

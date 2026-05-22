@@ -19,6 +19,9 @@ const BASH_CONFIG = {
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1461535919&single=true&output=csv", // Paste published CSV URL for Exams sheet
     TASKS:
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1468460687&single=true&output=csv", // Paste published CSV URL for Tasks sheet
+    // Contributors columns: name, Email, linkdIN, Profile (link), semester, points, date added, contribution topic
+    // Points are summed per person (by email, or name if no email) for the Top 3 ranking
+    CONTRIBUTORS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=1836716982&single=true&output=csv", // Paste published CSV URL for Contributors sheet (File → Share → Publish to web → CSV)
   },
 
   // Registration Form
@@ -27,6 +30,10 @@ const BASH_CONFIG = {
   // Drive click logger — Apps Script Web App /exec URL (deploy with access: Anyone)
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
   LOGGER_URL: "https://script.google.com/macros/s/AKfycbyvYRBXnVxx4rEwRjvpGDBvXaqNx4T3vXMQP7oTBm1i/dev",
+
+  // Published CSV of registration form responses (optional).
+  // If set, only emails found in this sheet are accepted. If empty, any valid email is saved.
+  VERIFIED_EMAILS: "",
 
   // WhatsApp Number for Contribution
   WHATSAPP_NUMBER: "923142541678",

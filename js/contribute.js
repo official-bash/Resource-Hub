@@ -1,8 +1,18 @@
 BASH.renderContributePage = async function () {
+  if (this.contributorDetailId) {
+    await this.renderContributorDetailPage(this.contributorDetailId);
+    return;
+  }
+
   const exams = this.data.exams || (await this.fetchExams());
   const mainContent = document.getElementById("mainContent");
 
   let html = '<div class="section-title">🤝 Contribute to BASH</div>';
+
+  const topContributorsHtml = await this.renderTopContributorsSection();
+  if (topContributorsHtml) {
+    html += topContributorsHtml;
+  }
 
   // Check for errors fetching exams
   if (this.examsError) {
@@ -148,6 +158,7 @@ BASH.renderContributePage = async function () {
     `;
 
   mainContent.innerHTML = html;
+  this.setupContributorCardHandlers(mainContent);
 };
 
 BASH.filterContribution = function (query, filter) {

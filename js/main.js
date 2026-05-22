@@ -5,7 +5,10 @@ const BASH = {
     exams: null,
     books: null,
     tasks: null,
+    contributors: null,
   },
+
+  contributorDetailId: null,
 
   // Store filter states for pages with multiple filter groups
   filterState: {
@@ -17,34 +20,56 @@ const BASH = {
   breadcrumbPath: [],
 
   init() {
+    this.pendingDriveOpen = null;
     this.initUserEmailFromUrl();
+    this.setupEmailModal();
+    this.setupEmailTopBar();
     this.loadNavigation();
     this.setupTasksButton();
     this.setupBackKeyHandler();
     Notification.setupNotificationButton();
     this.setupContributeButton();
-    this.loadPage("courses");
+    this.applyHashRoute();
+    window.addEventListener("hashchange", () => this.applyHashRoute());
+    const initialHash = (window.location.hash || "").replace(/^#/, "");
+    if (!initialHash) {
+      this.loadPage("courses");
+    }
     this.setupSearch();
     this.updateBadges();
+    if (!this.hasStoredEmail()) {
+      this.showEmailModal(false);
+    }
+  },
+
+  hasStoredEmail() {
+    try {
+      const email = localStorage.getItem("bash_user_email");
+      return !!(email && email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
+    } catch {
+      return false;
+    }
   },
 
   getUserEmail() {
+    if (!this.hasStoredEmail()) return "anonymous";
     try {
-      const email = localStorage.getItem("bash_user_email");
-      return email && email.trim() ? email.trim() : "anonymous";
+      return localStorage.getItem("bash_user_email").trim();
     } catch {
       return "anonymous";
     }
   },
 
   saveUserEmail(email) {
-    if (!email || typeof email !== "string") return;
+    if (!email || typeof email !== "string") return false;
     const trimmed = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
     try {
       localStorage.setItem("bash_user_email", trimmed);
+      this.updateEmailTopBar();
+      return true;
     } catch {
-      /* ignore quota / private mode */
+      return false;
     }
   },
 
@@ -58,9 +83,189 @@ const BASH = {
     }
   },
 
-  /** Call after your registration/form verification succeeds */
   onEmailVerified(email) {
-    this.saveUserEmail(email);
+    return this.saveUserEmail(email);
+  },
+
+  async fetchVerifiedEmailSet() {
+    if (this._verifiedEmailSet) return this._verifiedEmailSet;
+    const url = BASH_CONFIG.VERIFIED_EMAILS;
+    if (!url) return null;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const csv = await response.text();
+      const emails = new Set();
+      csv
+        .trim()
+        .split("\n")
+        .slice(1)
+        .forEach((line) => {
+          const match = line.match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/i);
+          if (match) emails.add(match[0].toLowerCase());
+        });
+      this._verifiedEmailSet = emails;
+      return emails;
+    } catch {
+      return null;
+    }
+  },
+
+  async verifyAndSaveEmail(email) {
+    const trimmed = (email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
+
+    const allowed = await this.fetchVerifiedEmailSet();
+    if (allowed && allowed.size > 0 && !allowed.has(trimmed)) {
+      return false;
+    }
+
+    return this.saveUserEmail(trimmed);
+  },
+
+  setupEmailModal() {
+    if (document.getElementById("emailGateModal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "emailGateModal";
+    modal.className = "tasks-modal email-gate-modal";
+    modal.style.display = "none";
+    modal.innerHTML = `
+      <div class="modal-overlay" id="emailGateOverlay"></div>
+      <div class="modal-container email-gate-container">
+        <div class="modal-header">
+          <h2>Enter your email</h2>
+          <button class="modal-close" id="emailGateClose" type="button" title="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-content">
+          <p class="email-gate-desc">
+            Use the same email you submitted on the
+            <a href="${BASH_CONFIG.REGISTER_FORM}" target="_blank" rel="noopener noreferrer">registration form</a>.
+            This is required to open course materials and for activity logging.
+          </p>
+          <input type="email" id="emailGateInput" class="email-gate-input"
+            placeholder="you@university.edu" autocomplete="email" required>
+          <p id="emailGateError" class="email-gate-error" style="display:none;"></p>
+          <button type="button" id="emailGateSubmit" class="register-btn-top email-gate-submit">
+            Continue
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const submit = () => this.handleEmailGateSubmit();
+    document.getElementById("emailGateSubmit").addEventListener("click", submit);
+    document.getElementById("emailGateInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submit();
+    });
+    document.getElementById("emailGateClose").addEventListener("click", () => {
+      this.hideEmailModal();
+    });
+    document.getElementById("emailGateOverlay").addEventListener("click", () => {
+      if (!this.pendingDriveOpen) this.hideEmailModal();
+    });
+  },
+
+  showEmailGateError(message) {
+    const err = document.getElementById("emailGateError");
+    if (err) {
+      err.textContent = message;
+      err.style.display = message ? "block" : "none";
+    }
+  },
+
+  async handleEmailGateSubmit() {
+    const input = document.getElementById("emailGateInput");
+    const value = input ? input.value : "";
+    this.showEmailGateError("");
+
+    const ok = await this.verifyAndSaveEmail(value);
+    if (!ok) {
+      const msg = BASH_CONFIG.VERIFIED_EMAILS
+        ? "Email not found. Register first, then use the same address here."
+        : "Enter a valid email address.";
+      this.showEmailGateError(msg);
+      return;
+    }
+
+    this.hideEmailModal();
+    if (this.pendingDriveOpen) {
+      const { driveLink, courseName, folderName } = this.pendingDriveOpen;
+      this.pendingDriveOpen = null;
+      this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
+      window.open(driveLink, "_blank");
+    }
+  },
+
+  showEmailModal(forDriveClick) {
+    const modal = document.getElementById("emailGateModal");
+    const input = document.getElementById("emailGateInput");
+    if (!modal) return;
+
+    if (forDriveClick) {
+      modal.classList.add("email-gate-modal--required");
+    } else {
+      modal.classList.remove("email-gate-modal--required");
+    }
+
+    if (input) {
+      input.value = this.hasStoredEmail() ? this.getUserEmail() : "";
+    }
+    this.showEmailGateError("");
+    modal.style.display = "flex";
+    if (input) input.focus();
+  },
+
+  hideEmailModal() {
+    const modal = document.getElementById("emailGateModal");
+    if (modal) modal.style.display = "none";
+    if (!this.pendingDriveOpen) return;
+    this.pendingDriveOpen = null;
+  },
+
+  setupEmailTopBar() {
+    const actions = document.querySelector(".top-bar-actions");
+    if (!actions || document.getElementById("emailTopBtn")) return;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "emailTopBtn";
+    btn.className = "icon-btn email-top-btn";
+    btn.title = "Your email";
+    btn.innerHTML = '<i class="fas fa-envelope"></i>';
+    btn.addEventListener("click", () => this.showEmailModal(false));
+
+    const registerBtn = document.getElementById("registerTopBtn");
+    if (registerBtn) {
+      actions.insertBefore(btn, registerBtn.nextSibling);
+    } else {
+      actions.prepend(btn);
+    }
+    this.updateEmailTopBar();
+  },
+
+  updateEmailTopBar() {
+    const btn = document.getElementById("emailTopBtn");
+    if (!btn) return;
+    if (this.hasStoredEmail()) {
+      const email = this.getUserEmail();
+      btn.title = email;
+      btn.classList.add("email-top-btn--set");
+    } else {
+      btn.title = "Add your email";
+      btn.classList.remove("email-top-btn--set");
+    }
+  },
+
+  ensureEmailForDriveClick(driveLink, courseName, folderName) {
+    if (this.hasStoredEmail()) return true;
+    this.pendingDriveOpen = { driveLink, courseName, folderName };
+    this.showEmailModal(true);
+    return false;
   },
 
   isLoggerDebug() {
@@ -118,6 +323,7 @@ const BASH = {
 
   openDriveLink(driveLink, courseName, folderName) {
     if (!driveLink) return;
+    if (!this.ensureEmailForDriveClick(driveLink, courseName, folderName)) return;
     this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
     window.open(driveLink, "_blank");
   },
@@ -302,14 +508,35 @@ const BASH = {
     modalContent.innerHTML = html;
   },
 
-  navigateTo(page) {
+  navigateTo(page, options = {}) {
     document.querySelectorAll(".nav-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.page === page);
     });
 
     this.currentPage = page;
+    if (page !== "contribute") {
+      this.contributorDetailId = null;
+    } else {
+      const hash = (window.location.hash || "").replace(/^#/, "");
+      const detailMatch = hash.match(/^contribute\/([^/]+)$/);
+      this.contributorDetailId = detailMatch
+        ? decodeURIComponent(detailMatch[1])
+        : null;
+    }
     this.breadcrumbPath = [];
     this.filterState = { type: "all", semester: "all" };
+
+    if (!options.skipHash) {
+      if (page === "contribute" && this.contributorDetailId) {
+        history.replaceState(
+          {},
+          "",
+          `#contribute/${encodeURIComponent(this.contributorDetailId)}`,
+        );
+      } else {
+        history.replaceState({}, "", `#${page}`);
+      }
+    }
 
     this.loadPage(page);
     this.updateFilters(page);
@@ -365,9 +592,45 @@ const BASH = {
     });
   },
 
+  applyHashRoute() {
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    const contributeMatch = hash.match(/^contribute\/([^/]+)$/);
+    if (contributeMatch) {
+      this.contributorDetailId = decodeURIComponent(contributeMatch[1]);
+      this.navigateTo("contribute", { skipHash: true });
+      return;
+    }
+    if (hash === "contribute" && this.contributorDetailId) {
+      this.contributorDetailId = null;
+      if (this.currentPage === "contribute") {
+        this.renderContributePage();
+      }
+      return;
+    }
+    if (hash && !contributeMatch) {
+      const page = hash.split("/")[0];
+      if (
+        ["courses", "exams", "books-outline", "lecture-notes", "contact", "contribute"].includes(
+          page,
+        )
+      ) {
+        this.contributorDetailId = null;
+        this.navigateTo(page, { skipHash: true });
+      }
+    }
+  },
+
   setupBackKeyHandler() {
     // Handle back button on mobile and browser back navigation
     window.addEventListener("popstate", (event) => {
+      if (this.currentPage === "contribute" && this.contributorDetailId) {
+        event.preventDefault();
+        this.contributorDetailId = null;
+        history.replaceState({}, "", "#contribute");
+        this.renderContributePage();
+        return;
+      }
+
       // Check if we're currently in courses section with breadcrumb navigation
       if (this.currentPage === "courses" && this.breadcrumbPath.length > 0) {
         // Move back one step in the breadcrumb path
