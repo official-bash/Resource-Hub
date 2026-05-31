@@ -111,6 +111,11 @@ BASH.parseProfilesCSV = function (csv) {
         "linkdin",
         "linkdIN",
       ]),
+      portfolio: this.getContributorColumn(headers, values, [
+        "portfolio",
+        "portfoliolink",
+        "website",
+      ]),
       profile: this.getContributorColumn(headers, values, [
         "profile",
         "profilelink",
@@ -185,6 +190,7 @@ BASH.combineProfilesAndActivities = function (profiles, activities) {
       name: profile.name,
       email: profile.email,
       linkedin: profile.linkedin,
+      portfolio: profile.portfolio,
       profile: profile.profile,
       semester: profile.semester,
       totalPoints: 0,
@@ -204,6 +210,7 @@ BASH.combineProfilesAndActivities = function (profiles, activities) {
         name: `Contributor ${activity.id}`,
         email: "",
         linkedin: "",
+        portfolio: "",
         profile: "",
         semester: "",
         totalPoints: 0,
@@ -267,6 +274,11 @@ BASH.parseContributorsCSV = function (csv) {
         "linkdin",
         "linkdIN",
       ]),
+      portfolio: this.getContributorColumn(headers, values, [
+        "portfolio",
+        "portfoliolink",
+        "website",
+      ]),
       profile: this.getContributorColumn(headers, values, [
         "profile",
         "profilelink",
@@ -304,6 +316,7 @@ BASH.aggregateContributors = function (rows) {
         name: row.name,
         email: row.email,
         linkedin: row.linkedin,
+        portfolio: row.portfolio,
         profile: row.profile,
         semester: row.semester,
         totalPoints: 0,
@@ -321,6 +334,7 @@ BASH.aggregateContributors = function (rows) {
     });
 
     if (!person.linkedin && row.linkedin) person.linkedin = row.linkedin;
+    if (!person.portfolio && row.portfolio) person.portfolio = row.portfolio;
     if (!person.profile && row.profile) person.profile = row.profile;
     if (!person.email && row.email) person.email = row.email;
     if (row.semester) person.semester = row.semester;
@@ -484,10 +498,27 @@ BASH.renderContributorDetailPage = async function (id) {
        </a>`
     : "";
 
+  const portfolioBtn = person.portfolio
+    ? `<a href="${this.escapeHtml(person.portfolio)}" target="_blank" rel="noopener noreferrer" class="contributor-detail-link contributor-detail-link--portfolio">
+         <i class="fas fa-globe"></i> Portfolio
+       </a>`
+    : "";
+
+  const linksHtml = (linkedinBtn || portfolioBtn)
+    ? `<div class="contributor-detail-links">
+         ${linkedinBtn}
+         ${portfolioBtn}
+       </div>`
+    : "";
+
   const emailRow = person.email
     ? `<div class="contributor-info-item">
          <span class="contributor-info-label"><i class="fas fa-envelope"></i> Email</span>
-         <span class="contributor-info-value">${this.escapeHtml(person.email)}</span>
+         <span class="contributor-info-value">
+           <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(person.email)}" target="_blank" rel="noopener noreferrer" class="contributor-email-link">
+             ${this.escapeHtml(person.email)}
+           </a>
+         </span>
        </div>`
     : "";
 
@@ -553,7 +584,7 @@ BASH.renderContributorDetailPage = async function (id) {
               <span class="contributor-info-value">${this.escapeHtml(semesterLabel)}</span>
             </div>` : ""}
         </div>
-        ${linkedinBtn}
+        ${linksHtml}
       </section>
 
       <section class="contributor-detail-contributions">

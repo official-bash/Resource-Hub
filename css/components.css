@@ -888,6 +888,17 @@
     word-break: break-word;
 }
 
+.contributor-email-link {
+    color: var(--bash-navy);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.contributor-email-link:hover {
+    color: var(--bash-green);
+    text-decoration: underline;
+}
+
 .contributor-detail-link {
     display: inline-flex;
     align-items: center;
@@ -904,6 +915,17 @@
 
 .contributor-detail-link:hover {
     opacity: 0.9;
+}
+
+.contributor-detail-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.contributor-detail-link--portfolio {
+    background: var(--bash-green);
 }
 
 .contribution-list {
