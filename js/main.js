@@ -21,9 +21,6 @@ const BASH = {
 
   init() {
     this.pendingDriveOpen = null;
-    this.initUserEmailFromUrl();
-    this.setupEmailModal();
-    this.setupEmailTopBar();
     this.loadNavigation();
     this.setupTasksButton();
     this.setupContactTopButton();
@@ -38,9 +35,6 @@ const BASH = {
     }
     this.setupSearch();
     this.updateBadges();
-    if (!this.hasStoredEmail()) {
-      this.showEmailModal(false);
-    }
   },
 
   hasStoredEmail() {
@@ -263,10 +257,8 @@ const BASH = {
   },
 
   ensureEmailForDriveClick(driveLink, courseName, folderName) {
-    if (this.hasStoredEmail()) return true;
-    this.pendingDriveOpen = { driveLink, courseName, folderName };
-    this.showEmailModal(true);
-    return false;
+    // Email collection is disabled; always allow the click.
+    return true;
   },
 
   isLoggerDebug() {
