@@ -1100,3 +1100,82 @@
 .contribution-file-link i {
     font-size: 12px;
 }
+
+/* ── Multi-Link Selection Modal ────────────────────────────── */
+.multi-link-container {
+    max-width: 380px;
+}
+
+.multi-link-course {
+    color: var(--dark-gray);
+    font-size: 14px;
+    margin: 0 0 16px;
+    font-weight: 600;
+}
+
+.multi-link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.multi-link-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--light-gray);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.multi-link-item:hover {
+    border-color: var(--bash-green);
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.multi-link-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--bash-green), #1b6b42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.multi-link-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.multi-link-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--bash-navy);
+}
+
+.multi-link-label {
+    font-size: 13px;
+    color: var(--dark-gray);
+    margin-top: 2px;
+}
+
+.multi-link-arrow {
+    color: var(--bash-green);
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.multi-link-item:hover .multi-link-arrow {
+    opacity: 1;
+}

@@ -317,6 +317,14 @@ const BASH = {
   openDriveLink(driveLink, courseName, folderName) {
     if (!driveLink) return;
     if (!this.ensureEmailForDriveClick(driveLink, courseName, folderName)) return;
+
+    // Check for multi-link format: "URL1 (label1), URL2 (label2)"
+    const multiLinks = this.parseMultiLinks(driveLink);
+    if (multiLinks) {
+      this.showMultiLinkModal(multiLinks, courseName, folderName);
+      return;
+    }
+
     this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
     window.open(driveLink, "_blank");
   },
@@ -326,6 +334,31 @@ const BASH = {
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;");
+  },
+
+  /**
+   * Parses a multi-link cell value like "URL1 (2021), URL2 (2022)"
+   * Returns array of {url, label} if multiple links found, otherwise null.
+   */
+  parseMultiLinks(text) {
+    if (!text || typeof text !== "string") return null;
+    const pattern = /(\S+)\s*\(([^)]+)\)/g;
+    const links = [];
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      links.push({ url: match[1], label: match[2].trim() });
+    }
+    return links.length > 1 ? links : null;
+  },
+
+  /**
+   * Returns a label string like " (2021, 2022)" for multi-link values,
+   * or empty string for single links.
+   */
+  multiLinkLabel(text) {
+    const links = this.parseMultiLinks(text);
+    if (!links) return "";
+    return " (" + links.map((l) => l.label).join(", ") + ")";
   },
 
   setupDriveLinkHandlers(container) {
@@ -845,6 +878,76 @@ const BASH = {
     const semesters = [...new Set(exams.map((e) => e.semester))].sort();
     return semesters;
   },
+};
+
+// ── Multi-Link Selection Modal ──────────────────────────────
+BASH.showMultiLinkModal = function (links, courseName, folderName) {
+  // Remove existing modal if present
+  let modal = document.getElementById("multiLinkModal");
+  if (modal) modal.remove();
+
+  modal = document.createElement("div");
+  modal.id = "multiLinkModal";
+  modal.className = "tasks-modal multi-link-modal";
+
+  const linksHtml = links
+    .map(
+      (link) => `
+    <div class="multi-link-item" data-url="${BASH.escapeAttr(link.url)}">
+      <div class="multi-link-icon">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <div class="multi-link-info">
+        <div class="multi-link-name">${folderName}</div>
+        <div class="multi-link-label">${link.label}</div>
+      </div>
+      <div class="multi-link-arrow">
+        <i class="fas fa-external-link-alt"></i>
+      </div>
+    </div>
+  `,
+    )
+    .join("");
+
+  modal.innerHTML = `
+    <div class="modal-overlay" id="multiLinkOverlay"></div>
+    <div class="modal-container multi-link-container">
+      <div class="modal-header">
+        <h2>\uD83D\uDCC4 Select Version</h2>
+        <button class="modal-close" id="multiLinkClose" type="button">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-content">
+        <p class="multi-link-course">${courseName}</p>
+        <div class="multi-link-list">${linksHtml}</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.style.display = "flex";
+
+  document
+    .getElementById("multiLinkClose")
+    .addEventListener("click", () => BASH.closeMultiLinkModal());
+  document
+    .getElementById("multiLinkOverlay")
+    .addEventListener("click", () => BASH.closeMultiLinkModal());
+
+  modal.querySelectorAll(".multi-link-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const url = item.dataset.url;
+      BASH.logDriveClick(BASH.getUserEmail(), courseName, folderName, url);
+      window.open(url, "_blank");
+      BASH.closeMultiLinkModal();
+    });
+  });
+};
+
+BASH.closeMultiLinkModal = function () {
+  const modal = document.getElementById("multiLinkModal");
+  if (modal) modal.remove();
 };
 
 document.addEventListener("DOMContentLoaded", () => BASH.init());

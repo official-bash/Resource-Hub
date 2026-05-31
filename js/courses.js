@@ -103,7 +103,7 @@ BASH.parseCoursesFromExams = function (csv) {
     // Add document items from EXAMS columns (only if they have links)
     if (midLink) {
       course.documents.push({
-        name: "Mid Term Exam",
+        name: "Mid Term Exam" + BASH.multiLinkLabel(midLink),
         type: "document",
         link: midLink,
         icon: "fa-file-pdf",
@@ -113,7 +113,7 @@ BASH.parseCoursesFromExams = function (csv) {
 
     if (finalLink) {
       course.documents.push({
-        name: "Final Exam",
+        name: "Final Exam" + BASH.multiLinkLabel(finalLink),
         type: "document",
         link: finalLink,
         icon: "fa-file-pdf",
@@ -133,7 +133,7 @@ BASH.parseCoursesFromExams = function (csv) {
 
     if (bookLink) {
       course.documents.push({
-        name: "Course Book",
+        name: "Course Book" + BASH.multiLinkLabel(bookLink),
         type: "document",
         link: bookLink,
         icon: "fa-book",

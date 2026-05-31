@@ -52,7 +52,7 @@ BASH.renderBooksOutlinePage = async function () {
           ${
             exam.book_link
               ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.book_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Book" target="_blank" class="exam-btn btn-book">
-                  <i class="fas fa-book"></i> Book
+                  <i class="fas fa-book"></i> Book${BASH.multiLinkLabel(exam.book_link)}
                 </a>`
               : `<div class="missing-container">
                   <span class="exam-btn btn-missing">

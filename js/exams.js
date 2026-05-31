@@ -98,7 +98,7 @@ BASH.renderExamsPage = async function () {
                     ${
                       exam.mid_link
                         ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.mid_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Mid Term" target="_blank" class="exam-btn btn-mid">
-                            <i class="fas fa-file-pdf"></i> Mid Term
+                            <i class="fas fa-file-pdf"></i> Mid Term${BASH.multiLinkLabel(exam.mid_link)}
                         </a>`
                         : `<div class="missing-container">
                             <span class="exam-btn btn-missing">
@@ -114,7 +114,7 @@ BASH.renderExamsPage = async function () {
                     ${
                       exam.final_link
                         ? `<a href="#" data-drive-link="${BASH.escapeAttr(exam.final_link)}" data-course-name="${BASH.escapeAttr(exam.course_name)}" data-folder-name="Final" target="_blank" class="exam-btn btn-final">
-                            <i class="fas fa-file-pdf"></i> Final
+                            <i class="fas fa-file-pdf"></i> Final${BASH.multiLinkLabel(exam.final_link)}
                         </a>`
                         : `<div class="missing-container">
                             <span class="exam-btn btn-missing">
