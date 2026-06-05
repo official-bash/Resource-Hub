@@ -284,6 +284,13 @@ BASH.createCard = function (item, type) {
 };
 
 BASH.openSemester = function (semester, pushHistory = true) {
+  BASH.logDriveClick(
+    BASH.getUserEmail(),
+    "Folder Navigation",
+    `Semester: ${semester.title || semester.name || ""}`,
+    window.location.origin + window.location.pathname + "#courses"
+  );
+
   if (pushHistory) {
     this.breadcrumbPath.push({
       name: semester.title,
@@ -304,6 +311,13 @@ BASH.openSemester = function (semester, pushHistory = true) {
 };
 
 BASH.openCourse = function (course, pushHistory = true) {
+  BASH.logDriveClick(
+    BASH.getUserEmail(),
+    course.name || "",
+    "Course Folder Opened",
+    window.location.origin + window.location.pathname + "#courses"
+  );
+
   if (pushHistory) {
     this.breadcrumbPath.push({
       name: course.name,

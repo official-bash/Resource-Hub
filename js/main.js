@@ -21,6 +21,9 @@ const BASH = {
 
   init() {
     this.pendingDriveOpen = null;
+    this.initUserEmailFromUrl();
+    this.setupEmailModal();
+    this.setupEmailTopBar();
     this.loadNavigation();
     this.setupTasksButton();
     this.setupContactTopButton();
@@ -35,6 +38,11 @@ const BASH = {
     }
     this.setupSearch();
     this.updateBadges();
+
+    // Show mandatory email gate if no email is stored
+    if (!this.hasStoredEmail()) {
+      this.showEmailModal(true);
+    }
   },
 
   hasStoredEmail() {
@@ -158,10 +166,10 @@ const BASH = {
       if (e.key === "Enter") submit();
     });
     document.getElementById("emailGateClose").addEventListener("click", () => {
-      this.hideEmailModal();
+      if (this.hasStoredEmail()) this.hideEmailModal();
     });
     document.getElementById("emailGateOverlay").addEventListener("click", () => {
-      if (!this.pendingDriveOpen) this.hideEmailModal();
+      if (this.hasStoredEmail()) this.hideEmailModal();
     });
   },
 
@@ -257,8 +265,10 @@ const BASH = {
   },
 
   ensureEmailForDriveClick(driveLink, courseName, folderName) {
-    // Email collection is disabled; always allow the click.
-    return true;
+    if (this.hasStoredEmail()) return true;
+    this.pendingDriveOpen = { driveLink, courseName, folderName };
+    this.showEmailModal(true);
+    return false;
   },
 
   isLoggerDebug() {
@@ -587,6 +597,16 @@ const BASH = {
     this.loadPage(page);
     this.updateFilters(page);
     document.getElementById("searchInput").value = "";
+
+    // Log page navigation
+    if (["courses", "exams", "books-outline", "lecture-notes", "contribute", "contact"].includes(page)) {
+      this.logDriveClick(
+        this.getUserEmail(),
+        "Page Navigation",
+        `Page: ${page}`,
+        window.location.origin + window.location.pathname + "#" + page
+      );
+    }
   },
 
   loadPage(page) {

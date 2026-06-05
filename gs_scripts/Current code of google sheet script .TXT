@@ -1,0 +1,133 @@
+/**
+ * BASH Drive Click Logger — Google Apps Script Web App
+ *
+ * Setup:
+ * 1. Create a Google Sheet named "BASH Logger" (or any name).
+ * 2. Add a sheet tab with row 1 headers:
+ *    Timestamp | Email | Course Name | Folder Name | Drive Link
+ * 3. Extensions → Apps Script → paste this file → Save.
+ * 4. Deploy → New deployment → Web app
+ *    - Execute as: Me
+ *    - Who has access: Anyone
+ * 5. Copy the Web App URL into js/config.js as LOGGER_URL
+ */
+
+const LOGGER_SHEET_NAME = "Logger";
+
+function doGet(e) {
+  try {
+    const params = e && e.parameter ? e.parameter : {};
+    const email = (params.email || "").toString().trim();
+    const courseName = (params.courseName || "").toString().trim();
+    const folderName = (params.folderName || "").toString().trim();
+    const driveLink = (params.driveLink || "").toString().trim();
+    const timestamp = new Date();
+
+    const sheet = getLoggerSheet_();
+    sheet.appendRow([timestamp, email, courseName, folderName, driveLink]);
+
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: true }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: String(err) }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getLoggerSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(LOGGER_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(LOGGER_SHEET_NAME);
+    sheet.appendRow([
+      "Timestamp",
+      "Email",
+      "Course Name",
+      "Folder Name",
+      "Drive Link",
+    ]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+
+// ============================================================
+// MIDS & Books – Multi‑document Link Manager
+// ============================================================
+
+/**
+ * Adds the custom menu when the spreadsheet is opened.
+ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('MIDS & Books')
+    .addItem('Insert Multiple Links', 'showInsertMultipleLinksDialog')
+    .addItem('Open Links Modal', 'showLinksModal')
+    .addToUi();
+}
+
+/**
+ * Opens an HTML dialog that lets the user add any number of URL/label pairs.
+ */
+function showInsertMultipleLinksDialog() {
+  const html = HtmlService.createHtmlOutputFromFile('InsertLinks')
+    .setWidth(400)
+    .setHeight(350);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Insert Document & Book Links');
+}
+
+/**
+ * Called from the InsertLinks dialog when the user clicks "Insert".
+ * @param {Array<{url:string,label:string}>} entries
+ */
+function insertLinksIntoCell(entries) {
+  if (!entries || entries.length === 0) return;
+  const formatted = entries
+    .map(function(e) { return e.url.trim() + ' (' + e.label.trim() + ')'; })
+    .join(', ');
+  var range = SpreadsheetApp.getActiveRange();
+  range.setValue(formatted);
+}
+
+/**
+ * Shows the modal that lists each link with its label.
+ */
+function showLinksModal() {
+  var range = SpreadsheetApp.getActiveRange();
+  var cellValue = range.getDisplayValue();
+  if (!cellValue) {
+    SpreadsheetApp.getUi().alert('Please select a cell that contains links.');
+    return;
+  }
+  var entries = parseCellContent_(cellValue);
+  var template = HtmlService.createTemplateFromFile('LinksModal');
+  template.entries = entries;
+  var html = template.evaluate()
+    .setWidth(400)
+    .setHeight(300);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Links');
+}
+
+/**
+ * Parses "url1 (label1), url2 (label2)" into an array of objects.
+ * @param {string} text
+ * @return {Array<{url:string,label:string}>}
+ */
+function parseCellContent_(text) {
+  return text.split(',')
+    .map(function(part) { return part.trim(); })
+    .filter(function(part) { return part.length > 0; })
+    .map(function(part) {
+      var openIdx = part.lastIndexOf('(');
+      var closeIdx = part.lastIndexOf(')');
+      if (openIdx > -1 && closeIdx > openIdx) {
+        var url = part.substring(0, openIdx).trim();
+        var label = part.substring(openIdx + 1, closeIdx).trim();
+        return {url: url, label: label};
+      }
+      return {url: part, label: ''};
+    });
+}

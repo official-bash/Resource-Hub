@@ -34,7 +34,7 @@ const BASH_CONFIG = {
 
   // Drive click logger — Apps Script Web App /exec URL (deploy with access: Anyone)
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
-  LOGGER_URL: "https://script.google.com/macros/s/AKfycbyvYRBXnVxx4rEwRjvpGDBvXaqNx4T3vXMQP7oTBm1i/dev",
+  LOGGER_URL: "https://script.google.com/macros/s/AKfycbyYaTWMnYw1nPwhRl6fg_U82GzpEzqKeX5NpT1K1b5C_iOFKcRi_5Am9QJ-HI7QW_znWw/exec",
 
   // Published CSV of registration form responses (optional).
   // If set, only emails found in this sheet are accepted. If empty, any valid email is saved.
