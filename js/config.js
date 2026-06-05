@@ -36,9 +36,12 @@ const BASH_CONFIG = {
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
   LOGGER_URL: "https://script.google.com/macros/s/AKfycbyYaTWMnYw1nPwhRl6fg_U82GzpEzqKeX5NpT1K1b5C_iOFKcRi_5Am9QJ-HI7QW_znWw/exec",
 
-  // Published CSV of registration form responses (optional).
-  // If set, only emails found in this sheet are accepted. If empty, any valid email is saved.
-  VERIFIED_EMAILS: "",
+  // Published CSV of registration form responses / verified email databases.
+  // Only emails found in these sheets are accepted.
+  VERIFIED_EMAILS: [
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvot6xMc3FvT6zeO1LGOTb48fXUXc54Xm1kOszCh00KYl2RNzGNJr6s-HS8oTm3qFvinb0pjQbpNLT/pub?gid=151021924&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRZokNJG3cs3QqvqYzT26S9mimsq8RH56cQHW42EQYjzIISVLaT5m6f5oTeXy9sFqa29t9TqCJMb_I7/pub?gid=225641271&single=true&output=csv"
+  ],
 
   // WhatsApp Number for Contribution
   WHATSAPP_NUMBER: "923142541678",

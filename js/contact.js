@@ -16,9 +16,9 @@ BASH.renderContactPage = function() {
     html += '<p style="margin-bottom:20px; color:var(--dark-gray);">Connect with us on any platform!</p>';
     html += '<div class="contact-grid">';
     
-    socialLinks.forEach(link => {
+    socialLinks.forEach((link, idx) => {
         html += `
-            <a href="${link.link}" target="_blank" class="contact-card fade-in">
+            <a href="${link.link}" target="_blank" class="contact-card fade-in" data-contact-index="${idx}">
                 <div class="contact-icon" style="color:${link.color};">
                     <i class="${link.icon}"></i>
                 </div>
@@ -40,4 +40,20 @@ BASH.renderContactPage = function() {
     `;
     
     mainContent.innerHTML = html;
+
+    // Track contact card link clicks
+    mainContent.querySelectorAll('.contact-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const idx = card.dataset.contactIndex;
+            const link = socialLinks[idx];
+            if (link) {
+                BASH.logDriveClick(
+                    BASH.getUserEmail(),
+                    'Contact',
+                    `Platform Visited: ${link.name}`,
+                    link.link
+                );
+            }
+        });
+    });
 };

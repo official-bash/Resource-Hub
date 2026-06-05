@@ -20,6 +20,8 @@ const BASH = {
   breadcrumbPath: [],
 
   init() {
+    if (this.initialized) return;
+    this.initialized = true;
     this.pendingDriveOpen = null;
     this.initUserEmailFromUrl();
     this.setupEmailModal();
@@ -39,9 +41,53 @@ const BASH = {
     this.setupSearch();
     this.updateBadges();
 
-    // Show mandatory email gate if no email is stored
-    if (!this.hasStoredEmail()) {
-      this.showEmailModal(true);
+    // Start downloading verified email list in the background immediately
+    this.preloadVerifiedEmails();
+
+    // Verify user email status on startup
+    const checkUserEmailVerification = async () => {
+      const hasEmail = this.hasStoredEmail();
+      const email = this.getUserEmail();
+      let verified = false;
+
+      if (hasEmail) {
+        const allowed = await this.preloadVerifiedEmails();
+        if (!allowed || allowed.size === 0 || allowed.has(email)) {
+          verified = true;
+        }
+      }
+
+      if (!hasEmail || !verified) {
+        if (hasEmail && !verified) {
+          try {
+            localStorage.removeItem("bash_user_email");
+            this.updateEmailTopBar();
+          } catch {}
+        }
+        this.showEmailModal(true);
+      } else {
+        // Log session start only for verified/valid users
+        this.logDriveClick(
+          this.getUserEmail(),
+          "Session",
+          "App Opened",
+          window.location.href
+        );
+      }
+    };
+    checkUserEmailVerification();
+
+    // Track registration button clicks
+    const regBtn = document.getElementById("registerTopBtn");
+    if (regBtn) {
+      regBtn.addEventListener("click", () => {
+        this.logDriveClick(
+          this.getUserEmail(),
+          "Registration",
+          "Register Button Clicked",
+          BASH_CONFIG.REGISTER_FORM || ""
+        );
+      });
     }
   },
 
@@ -90,36 +136,59 @@ const BASH = {
     return this.saveUserEmail(email);
   },
 
+  verifiedEmailsPromise: null,
+
+  preloadVerifiedEmails() {
+    if (!this.verifiedEmailsPromise) {
+      this.verifiedEmailsPromise = this.fetchVerifiedEmailSet();
+    }
+    return this.verifiedEmailsPromise;
+  },
+
   async fetchVerifiedEmailSet() {
     if (this._verifiedEmailSet) return this._verifiedEmailSet;
-    const url = BASH_CONFIG.VERIFIED_EMAILS;
-    if (!url) return null;
+    let urls = BASH_CONFIG.VERIFIED_EMAILS;
+    if (!urls) return null;
+    if (!Array.isArray(urls)) {
+      urls = [urls];
+    }
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const csv = await response.text();
-      const emails = new Set();
-      csv
-        .trim()
-        .split("\n")
-        .slice(1)
-        .forEach((line) => {
-          const match = line.match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/i);
-          if (match) emails.add(match[0].toLowerCase());
-        });
+    const emails = new Set();
+    for (const url of urls) {
+      if (!url) continue;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        const csv = await response.text();
+        csv
+          .trim()
+          .split("\n")
+          .slice(1) // skip headers
+          .forEach((line) => {
+            if (!line) return;
+            const firstColumn = line.split(",")[0].replace(/^"|"$/g, "").trim();
+            const match = firstColumn.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+            if (match) {
+              emails.add(match[0].toLowerCase());
+            }
+          });
+      } catch (e) {
+        console.error("Failed to fetch verified emails from: " + url, e);
+      }
+    }
+
+    if (emails.size > 0) {
       this._verifiedEmailSet = emails;
       return emails;
-    } catch {
-      return null;
     }
+    return null;
   },
 
   async verifyAndSaveEmail(email) {
     const trimmed = (email || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
 
-    const allowed = await this.fetchVerifiedEmailSet();
+    const allowed = await this.preloadVerifiedEmails();
     if (allowed && allowed.size > 0 && !allowed.has(trimmed)) {
       return false;
     }
@@ -145,6 +214,7 @@ const BASH = {
         </div>
         <div class="modal-content">
           <p class="email-gate-desc">
+            <strong>Use your official university email.</strong><br>
             Use the same email you submitted on the
             <a href="${BASH_CONFIG.REGISTER_FORM}" target="_blank" rel="noopener noreferrer">registration form</a>.
             This is required to open course materials and for activity logging.
@@ -183,24 +253,55 @@ const BASH = {
 
   async handleEmailGateSubmit() {
     const input = document.getElementById("emailGateInput");
+    const submitBtn = document.getElementById("emailGateSubmit");
     const value = input ? input.value : "";
     this.showEmailGateError("");
 
-    const ok = await this.verifyAndSaveEmail(value);
-    if (!ok) {
-      const msg = BASH_CONFIG.VERIFIED_EMAILS
-        ? "Email not found. Register first, then use the same address here."
-        : "Enter a valid email address.";
-      this.showEmailGateError(msg);
-      return;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+    }
+    if (input) {
+      input.disabled = true;
     }
 
-    this.hideEmailModal();
-    if (this.pendingDriveOpen) {
-      const { driveLink, courseName, folderName } = this.pendingDriveOpen;
-      this.pendingDriveOpen = null;
-      this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
-      window.open(driveLink, "_blank");
+    try {
+      const ok = await this.verifyAndSaveEmail(value);
+      if (!ok) {
+        const msg = BASH_CONFIG.VERIFIED_EMAILS
+          ? "Email not found. Register first, then use the same address here."
+          : "Enter a valid email address.";
+        this.showEmailGateError(msg);
+
+        // Restore UI controls if validation failed
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Continue";
+        }
+        if (input) {
+          input.disabled = false;
+          input.focus();
+        }
+        return;
+      }
+
+      this.hideEmailModal();
+      if (this.pendingDriveOpen) {
+        const { driveLink, courseName, folderName } = this.pendingDriveOpen;
+        this.pendingDriveOpen = null;
+        this.logDriveClick(this.getUserEmail(), courseName, folderName, driveLink);
+        window.open(driveLink, "_blank");
+      }
+    } catch (err) {
+      this.showEmailGateError("An unexpected error occurred. Please try again.");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Continue";
+      }
+      if (input) {
+        input.disabled = false;
+        input.focus();
+      }
     }
   },
 
@@ -279,9 +380,85 @@ const BASH = {
     }
   },
 
+  logCache: {},
+  pendingSearchQuery: "",
+  lastLoggedSearchQuery: "",
+  searchLogTimer: null,
+
+  logSearchQuery(query) {
+    const trimmed = query.toLowerCase().trim();
+    if (!trimmed) {
+      this.pendingSearchQuery = "";
+      if (this.searchLogTimer) {
+        clearTimeout(this.searchLogTimer);
+        this.searchLogTimer = null;
+      }
+      return;
+    }
+
+    if (this.pendingSearchQuery === trimmed) return;
+
+    this.pendingSearchQuery = trimmed;
+    if (this.searchLogTimer) {
+      clearTimeout(this.searchLogTimer);
+    }
+
+    this.searchLogTimer = setTimeout(() => {
+      if (this.pendingSearchQuery === trimmed && this.lastLoggedSearchQuery !== trimmed) {
+        this.lastLoggedSearchQuery = trimmed;
+        this.pendingSearchQuery = "";
+        this.logDriveClick(
+          this.getUserEmail(),
+          "Search (Idle 6s)",
+          `Query: ${trimmed}`,
+          `Page: ${this.currentPage}`
+        );
+      }
+    }, 6000); // 6 seconds
+  },
+
+  checkAndLogPendingSearch() {
+    if (this.pendingSearchQuery) {
+      const queryToLog = this.pendingSearchQuery;
+      this.pendingSearchQuery = "";
+      this.lastLoggedSearchQuery = queryToLog;
+      if (this.searchLogTimer) {
+        clearTimeout(this.searchLogTimer);
+        this.searchLogTimer = null;
+      }
+      this.logDriveClick(
+        this.getUserEmail(),
+        "Search (Doc Clicked)",
+        `Query: ${queryToLog}`,
+        `Page: ${this.currentPage}`
+      );
+    }
+  },
+
   logDriveClick(email, courseName, folderName, driveLink) {
     const loggerUrl = BASH_CONFIG.LOGGER_URL;
     if (!loggerUrl || !driveLink) return;
+
+    // Deduplication check: prevent identical logs within 3 seconds
+    const cacheKey = `${email || "anonymous"}|${courseName || ""}|${folderName || ""}|${driveLink || ""}`;
+    const now = Date.now();
+    if (this.logCache[cacheKey] && (now - this.logCache[cacheKey] < 3000)) {
+      if (this.isLoggerDebug()) {
+        console.log("[BASH Logger] Ignored duplicate log entry:", cacheKey);
+      }
+      return;
+    }
+    this.logCache[cacheKey] = now;
+
+    // Clean up cache to prevent memory bloat
+    const keys = Object.keys(this.logCache);
+    if (keys.length > 50) {
+      for (const k of keys) {
+        if (now - this.logCache[k] > 10000) {
+          delete this.logCache[k];
+        }
+      }
+    }
 
     const params = new URLSearchParams({
       email: email || "anonymous",
@@ -302,21 +479,29 @@ const BASH = {
       });
     }
 
-    try {
-      fetch(url, { mode: "no-cors", keepalive: true }).catch((err) => {
-        if (debug) console.warn("[BASH Logger] fetch failed", err);
-      });
-    } catch (err) {
-      if (debug) console.warn("[BASH Logger] fetch error", err);
+    // Use fetch as primary mechanism, fall back to Image beacon ONLY if fetch is not supported
+    if (typeof fetch === "function") {
+      fetch(url, { mode: "no-cors", keepalive: true })
+        .then(() => {
+          if (debug) console.log("[BASH Logger] fetch success");
+        })
+        .catch((err) => {
+          if (debug) console.warn("[BASH Logger] fetch failed, falling back to image beacon", err);
+          this.sendImageBeacon(url, debug);
+        });
+    } else {
+      this.sendImageBeacon(url, debug);
     }
+  },
 
+  sendImageBeacon(url, debug) {
     try {
       const img = new Image();
       img.onerror = () => {
         if (debug) console.warn("[BASH Logger] image beacon failed", url);
       };
       img.onload = () => {
-        if (debug) console.log("[BASH Logger] request dispatched", url);
+        if (debug) console.log("[BASH Logger] image beacon success", url);
       };
       img.src = url;
     } catch (err) {
@@ -327,6 +512,8 @@ const BASH = {
   openDriveLink(driveLink, courseName, folderName) {
     if (!driveLink) return;
     if (!this.ensureEmailForDriveClick(driveLink, courseName, folderName)) return;
+
+    this.checkAndLogPendingSearch();
 
     // Check for multi-link format: "URL1 (label1), URL2 (label2)"
     const multiLinks = this.parseMultiLinks(driveLink);
@@ -723,6 +910,11 @@ const BASH = {
   handleSearch(query) {
     query = query.toLowerCase().trim();
 
+    // Log search query (skip empty queries, debounced through logSearchQuery)
+    if (query) {
+      this.logSearchQuery(query);
+    }
+
     switch (this.currentPage) {
       case "courses":
         this.filterCourses(query, this.filterState.type);
@@ -787,6 +979,14 @@ const BASH = {
 
     // Update filter state
     this.filterState[groupName] = chip.dataset.filter;
+
+    // Log filter chip click
+    this.logDriveClick(
+      this.getUserEmail(),
+      "Filter",
+      `${groupName}: ${chip.dataset.filter}`,
+      `Page: ${this.currentPage}`
+    );
 
     document.getElementById("searchInput").value = "";
     this.handleSearch("");

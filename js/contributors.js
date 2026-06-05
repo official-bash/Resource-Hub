@@ -448,6 +448,16 @@ BASH.setupContributorCardHandlers = function (container) {
 BASH.openContributorDetail = function (id) {
   this.contributorDetailId = id;
   history.pushState({ contributorDetail: id }, "", `#contribute/${id}`);
+
+  // Log contributor profile view
+  const person = this.getContributorById(id);
+  BASH.logDriveClick(
+    BASH.getUserEmail(),
+    "Contributor Profile",
+    `Viewed: ${person ? person.name : id}`,
+    window.location.origin + window.location.pathname + `#contribute/${id}`
+  );
+
   this.renderContributorDetailPage(id);
 };
 
@@ -493,13 +503,13 @@ BASH.renderContributorDetailPage = async function (id) {
     : "";
 
   const linkedinBtn = person.linkedin
-    ? `<a href="${this.escapeHtml(person.linkedin)}" target="_blank" rel="noopener noreferrer" class="contributor-detail-link">
+    ? `<a href="${this.escapeHtml(person.linkedin)}" target="_blank" rel="noopener noreferrer" class="contributor-detail-link" data-track-type="LinkedIn" data-track-name="${this.escapeHtml(person.name)}">
          <i class="fab fa-linkedin"></i> LinkedIn Profile
        </a>`
     : "";
 
   const portfolioBtn = person.portfolio
-    ? `<a href="${this.escapeHtml(person.portfolio)}" target="_blank" rel="noopener noreferrer" class="contributor-detail-link contributor-detail-link--portfolio">
+    ? `<a href="${this.escapeHtml(person.portfolio)}" target="_blank" rel="noopener noreferrer" class="contributor-detail-link contributor-detail-link--portfolio" data-track-type="Portfolio" data-track-name="${this.escapeHtml(person.name)}">
          <i class="fas fa-globe"></i> Portfolio
        </a>`
     : "";
@@ -600,5 +610,17 @@ BASH.renderContributorDetailPage = async function (id) {
 
   document.getElementById("contributorBackBtn")?.addEventListener("click", () => {
     this.closeContributorDetail();
+  });
+
+  // Track LinkedIn and Portfolio link clicks
+  document.querySelectorAll(".contributor-detail-link[data-track-type]").forEach((link) => {
+    link.addEventListener("click", () => {
+      BASH.logDriveClick(
+        BASH.getUserEmail(),
+        `Contributor ${link.dataset.trackType}`,
+        `Visited: ${link.dataset.trackName}`,
+        link.href
+      );
+    });
   });
 };

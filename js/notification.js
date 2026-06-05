@@ -82,6 +82,16 @@ const Notification = {
               ? "fas fa-chevron-up"
               : "fas fa-chevron-down";
           }
+          // Log notification click
+          if (expanded) {
+            const heading = item.querySelector(".notif-item-heading");
+            BASH.logDriveClick(
+              BASH.getUserEmail(),
+              "Notification",
+              `Opened: ${heading ? heading.textContent : "Unknown"}`,
+              window.location.href
+            );
+          }
         });
     }
 
