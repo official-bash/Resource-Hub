@@ -46,6 +46,10 @@ BASH.fetchCourses = async function () {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const csvText = await response.text();
     this.data.courses = this.parseCoursesFromExams(csvText);
+
+    // Fetch and merge Extra Material sheet
+    await this.fetchAndParseExtraMaterial();
+
     this.coursesError = null;
     console.log("Courses loaded successfully:", this.data.courses);
     return this.data.courses;
@@ -54,6 +58,82 @@ BASH.fetchCourses = async function () {
     this.data.courses = [];
     this.coursesError = "Failed to load courses. Please check the data source.";
     return this.data.courses;
+  }
+};
+
+BASH.fetchAndParseExtraMaterial = async function () {
+  const url = BASH_CONFIG.SHEETS.EXTRA_MATERIAL;
+  if (!url || url.includes("YOUR_GID_HERE")) return;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const csvText = await response.text();
+    const lines = csvText.trim().split("\n");
+    if (lines.length < 2) return;
+
+    // Build a map of normalized course_id -> course object
+    const courseMap = {};
+    if (this.data.courses) {
+      this.data.courses.forEach((sem) => {
+        if (sem.courses) {
+          sem.courses.forEach((course) => {
+            courseMap[course.id] = course;
+          });
+        }
+      });
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCSVLine(lines[i]);
+      if (values.length < 4) continue;
+
+      const courseIdRaw = values[0] || "";
+      const folderName = (values[1] || "").trim();
+      const fileName = (values[2] || "").trim();
+      const fileLink = (values[3] || "").trim();
+
+      if (!courseIdRaw || !fileName) continue;
+
+      const courseIdNormalized = courseIdRaw.toLowerCase().replace(/\s+/g, "-");
+      const course = courseMap[courseIdNormalized];
+
+      if (course) {
+        if (!course.documents) {
+          course.documents = [];
+        }
+
+        const docItem = {
+          name: fileName,
+          type: "document",
+          link: fileLink || "",
+          icon: "fa-file-alt",
+          fileType: "extra-file",
+        };
+
+        if (!folderName) {
+          // Add directly to course documents
+          course.documents.push(docItem);
+        } else {
+          // Add inside a local folder
+          let folder = course.documents.find(
+            (d) => d.type === "local-folder" && d.name === folderName,
+          );
+          if (!folder) {
+            folder = {
+              name: folderName,
+              type: "local-folder",
+              icon: "fa-folder",
+              documents: [],
+            };
+            course.documents.push(folder);
+          }
+          folder.documents.push(docItem);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error fetching/parsing Extra Material sheet:", e);
   }
 };
 
@@ -271,8 +351,10 @@ BASH.createCard = function (item, type) {
   div.addEventListener("click", () => {
     if (type === "semester") this.openSemester(item);
     else if (type === "course") this.openCourse(item);
-    else if (type === "folder") {
-      // Folder is always a link in new structure
+    else if (item.type === "local-folder") {
+      this.openLocalFolder(item);
+    } else if (type === "folder") {
+      // Folder is always a link in new structure (e.g. Google Drive folder)
       this.openFile(item);
     } else {
       // Document item - open the link
@@ -334,7 +416,7 @@ BASH.openCourse = function (course, pushHistory = true) {
   if (course.documents && course.documents.length > 0) {
     course.documents.forEach((doc) => {
       container.appendChild(
-        this.createCard(doc, doc.type === "folder" ? "folder" : "document"),
+        this.createCard(doc, doc.type === "local-folder" ? "folder" : "document"),
       );
     });
   } else {
@@ -350,8 +432,51 @@ BASH.openCourse = function (course, pushHistory = true) {
   this.updateBreadcrumb();
 };
 
+BASH.openLocalFolder = function (folder, pushHistory = true) {
+  BASH.logDriveClick(
+    BASH.getUserEmail(),
+    this.getActiveCourseName(),
+    `Folder: ${folder.name}`,
+    window.location.origin + window.location.pathname + "#courses"
+  );
+
+  if (pushHistory) {
+    this.breadcrumbPath.push({
+      name: folder.name,
+      action: "folder",
+      data: folder,
+    });
+    history.pushState({ id: "folder", page: "courses" }, "", "#courses");
+  }
+
+  const container = document.getElementById("coursesContainer");
+  container.className = "course-grid grid-2-col";
+  container.innerHTML = "";
+
+  if (folder.documents && folder.documents.length > 0) {
+    folder.documents.forEach((doc) => {
+      container.appendChild(
+        this.createCard(doc, doc.type === "local-folder" ? "folder" : "document"),
+      );
+    });
+  } else {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>No Documents Available</h3>
+        <p>This folder is empty.</p>
+      </div>
+    `;
+  }
+
+  this.updateBreadcrumb();
+};
+
 BASH.openFile = function (file) {
-  if (!file.link) return;
+  if (!file.link) {
+    alert("This file link is not available yet.");
+    return;
+  }
   const courseName = this.getActiveCourseName();
   const folderName = file.name || file.title || "";
   BASH.openDriveLink(file.link, courseName, folderName);

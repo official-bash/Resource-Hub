@@ -901,6 +901,8 @@ const BASH = {
             this.openSemester(prevItem.data, false);
           } else if (prevItem.action === "course") {
             this.openCourse(prevItem.data, false);
+          } else if (prevItem.action === "folder") {
+            this.openLocalFolder(prevItem.data, false);
           }
         }
       }
