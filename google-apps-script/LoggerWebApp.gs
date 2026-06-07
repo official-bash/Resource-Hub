@@ -13,6 +13,7 @@
  */
 
 const LOGGER_SHEET_NAME = "Logger";
+const SPREADSHEET_ID = "1bqvDxF6NtCiYtrhAIHOMoj_e4hmzl7uknrtIjcynkbE";
 
 function doGet(e) {
   try {
