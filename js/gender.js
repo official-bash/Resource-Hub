@@ -2,6 +2,7 @@
 const BASH_GENDER = {
   targetGender: null,
   namesData: [], // [{row: X, name: "Y"}]
+  _delayTimer: null,
   
   // URL to the published logger CSV
   LOGGER_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=853917613&single=true&output=csv",
@@ -19,8 +20,12 @@ const BASH_GENDER = {
     modal.innerHTML = `
       <div class="modal-overlay" id="genderModalOverlay"></div>
       <div class="modal-container">
+        <div class="modal-topbar">
+          <i class="fas fa-shield-alt"></i>
+          <span>Prove you are human</span>
+        </div>
         <div class="modal-header">
-          <div class="gender-modal-subtitle">Select all images with</div>
+          <div class="gender-modal-subtitle">Select all squares with</div>
           <h2 id="genderTargetTitle">Female names</h2>
         </div>
         <div class="modal-content">
@@ -29,7 +34,7 @@ const BASH_GENDER = {
           </div>
           <div class="gender-modal-footer">
             <button type="button" id="genderReloadBtn" class="gender-action-btn" title="Get new names">
-              <i class="fas fa-redo"></i>
+              <i class="fas fa-sync-alt"></i>
             </button>
             <div id="genderModalError" class="gender-modal-error"></div>
             <button type="button" id="genderSubmitBtn" class="gender-submit-btn">
@@ -50,7 +55,7 @@ const BASH_GENDER = {
     if (reloadBtn) {
       reloadBtn.addEventListener("click", () => {
         const email = window.BASH ? BASH.getUserEmail() : null;
-        if (email) {
+        if (email && email !== "anonymous") {
           reloadBtn.classList.add("spinning");
           this.fetchAndShowCaptcha(email, BASH_CONFIG.GENDER_CLASSIFIER_URL);
         }
@@ -67,8 +72,12 @@ const BASH_GENDER = {
     const title = document.getElementById("genderTargetTitle");
     const submitBtn = document.getElementById("genderSubmitBtn");
     const err = document.getElementById("genderModalError");
+    const reloadBtn = document.getElementById("genderReloadBtn");
 
     title.textContent = `${targetGender} names`;
+
+    // Stop reload spinner
+    if (reloadBtn) reloadBtn.classList.remove("spinning");
 
     // Render cards
     grid.innerHTML = "";
@@ -80,7 +89,6 @@ const BASH_GENDER = {
       
       card.addEventListener("click", () => {
         card.classList.toggle("active");
-        this.updateVerifyButton();
       });
       
       grid.appendChild(card);
@@ -95,31 +103,32 @@ const BASH_GENDER = {
       err.textContent = "";
     }
 
-    if (modal) modal.style.display = "flex";
-    this.updateVerifyButton();
-  },
-
-  updateVerifyButton() {
-    const submitBtn = document.getElementById("genderSubmitBtn");
-    if (!submitBtn) return;
-    submitBtn.textContent = "Verify";
+    // Smooth fade-in
+    if (modal) {
+      modal.style.display = "flex";
+      modal.classList.remove("visible");
+      // Force reflow so the transition plays
+      void modal.offsetWidth;
+      modal.classList.add("visible");
+    }
   },
 
   hideModal() {
     const modal = document.getElementById("genderVerificationModal");
-    if (modal) modal.style.display = "none";
+    if (modal) {
+      modal.classList.remove("visible");
+      setTimeout(() => { modal.style.display = "none"; }, 350);
+    }
   },
 
   /**
    * Helper to parse CSV simply. 
-   * (Does not handle commas inside quotes perfectly, but sufficient for our Logger CSV).
    */
   parseCSV(csvStr) {
     const lines = csvStr.split(/\r?\n/);
     const result = [];
     for (let i = 1; i < lines.length; i++) { // skip header
       if (!lines[i].trim()) continue;
-      // split by comma
       const cols = lines[i].split(",");
       result.push(cols);
     }
@@ -148,9 +157,6 @@ const BASH_GENDER = {
         const rowFolder = row[3].trim();
         
         if (rowEmail === email && rowFolder === "Prove Human Classification") {
-          // parse timestamp (e.g., 09/06/2026 21:28:08 or similar)
-          // Simple heuristic: just parse via Date (might be locale dependent, but best effort)
-          // To be safe, we split DD/MM/YYYY HH:mm:ss if it's formatted like that.
           let tsStr = row[0].trim();
           let timeValue = Date.parse(tsStr);
           
@@ -160,7 +166,6 @@ const BASH_GENDER = {
             if (parts.length > 0) {
               const dateParts = parts[0].split("/");
               if (dateParts.length === 3) {
-                // assume DD/MM/YYYY
                 timeValue = Date.parse(`${dateParts[1]}/${dateParts[0]}/${dateParts[2]} ${parts[1] || ""}`);
               }
             }
@@ -177,13 +182,14 @@ const BASH_GENDER = {
       
     } catch (err) {
       console.warn("[BASH Gender] Could not fetch/parse logger CSV:", err);
-      // Fallback: If we fail to read CSV, assume we should NOT prompt to avoid spamming
       return true;
     }
   },
 
   /**
-   * Main gate-keeper check
+   * Main gate-keeper check.
+   * Only triggered for verified/authorized emails after authentication.
+   * Adds a 10-second delay so the user can settle in before the captcha appears.
    */
   async checkVerification(email) {
     if (!email || email === "anonymous") return;
@@ -201,11 +207,15 @@ const BASH_GENDER = {
       return;
     }
 
-    this.fetchAndShowCaptcha(email, url);
+    // 2. Wait 10 seconds before showing the captcha
+    console.log("[BASH Gender] Will show captcha in 10 seconds...");
+    if (this._delayTimer) clearTimeout(this._delayTimer);
+    this._delayTimer = setTimeout(() => {
+      this.fetchAndShowCaptcha(email, url);
+    }, 10000);
   },
 
   async fetchAndShowCaptcha(email, url) {
-    // 2. Fetch Unclassified Names + Honeypot
     try {
       const size = BASH_CONFIG.GENDER_CAPTCHA_SIZE || 6;
       const checkUrl = `${url}?action=check&size=${size}&email=${encodeURIComponent(email)}`;
@@ -214,14 +224,18 @@ const BASH_GENDER = {
 
       const res = await response.json();
       if (res.success && res.needsClassification && res.names && res.names.length > 0) {
-        // The backend now provides the targetGender that matches the honeypot
         const targetGender = res.targetGender || "Female";
         this.showModal(targetGender, res.names);
       } else {
          console.log("[BASH Gender] No names need classification.", res.message);
+         // Stop reload spinner in case this was a reload
+         const reloadBtn = document.getElementById("genderReloadBtn");
+         if (reloadBtn) reloadBtn.classList.remove("spinning");
       }
     } catch (err) {
       console.error("[BASH Gender] Failed to fetch unclassified names:", err);
+      const reloadBtn = document.getElementById("genderReloadBtn");
+      if (reloadBtn) reloadBtn.classList.remove("spinning");
     }
   },
 
@@ -233,11 +247,11 @@ const BASH_GENDER = {
 
     if (!email || email === "anonymous" || !this.targetGender || !url) return;
 
-    // The user MUST select at least 1 known honeypot
+    // The user MUST select at least 1 card
     const selectedCount = document.querySelectorAll(".gender-option-card.active").length;
     if (selectedCount === 0) {
       if (errEl) {
-        errEl.textContent = "Please select at least 1 image.";
+        errEl.textContent = "Please select at least 1 name.";
         errEl.style.display = "block";
       }
       return;
@@ -282,24 +296,23 @@ const BASH_GENDER = {
         this.hideModal();
         
         // Log to BASH Logger to record the "Prove Human Classification" event
-        // CourseName="Security", FolderName="Prove Human Classification"
         if (window.BASH && typeof window.BASH.logEvent === "function") {
            BASH.logEvent("Prove Human Classification", "Security", `Target: ${this.targetGender}`, `Count: ${classifications.length}`);
         }
 
       } else {
-        // Validation Failed (e.g. Honeypot check failed)
+        // Honeypot check failed
         throw new Error(res.error || "Verification failed");
       }
     } catch (err) {
       console.error("[BASH Gender] Submission error:", err);
       if (errEl) {
-        errEl.textContent = "Verification failed. Please try again.";
+        errEl.textContent = "Verification failed. Try again.";
         errEl.style.display = "block";
       }
       
-      // Auto-retry to fetch new names
-      submitBtn.textContent = "Loading...";
+      // Auto-retry with new names after 1.5s
+      if (submitBtn) submitBtn.textContent = "Loading...";
       setTimeout(() => {
         this.fetchAndShowCaptcha(email, url);
       }, 1500);
