@@ -38,6 +38,10 @@ const BASH_CONFIG = {
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
   LOGGER_URL: "https://script.google.com/macros/s/AKfycbzr4h1W_NFBvByZIRQkFzRAmgk05E0Ll9q9otkjhKPHdE8e_61jLg-_FwwXupEpM5NsUQ/exec",
 
+  // Gender classification web app URL (Deploy as Web App, Access: Anyone)
+  GENDER_CLASSIFIER_URL: "https://script.google.com/macros/s/AKfycbzDxCiTup3pvv1Lf02pj7ashLReSzYN2NEeE7tqtE6Qsng25-pvqw8kRTZ5y2ElS9mF/exec",
+
+
   // Published CSV of registration form responses / verified email databases.
   // Only emails found in these sheets are accepted.
   VERIFIED_EMAILS: [

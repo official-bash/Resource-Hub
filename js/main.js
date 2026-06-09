@@ -73,6 +73,10 @@ const BASH = {
           "App Opened",
           window.location.href
         );
+        // Verify gender classification status
+        if (typeof BASH_GENDER !== "undefined") {
+          BASH_GENDER.checkVerification(this.getUserEmail());
+        }
       }
     };
     checkUserEmailVerification();
@@ -286,6 +290,9 @@ const BASH = {
       }
 
       this.hideEmailModal();
+      if (typeof BASH_GENDER !== "undefined") {
+        BASH_GENDER.checkVerification(this.getUserEmail());
+      }
       if (this.pendingDriveOpen) {
         const { driveLink, courseName, folderName } = this.pendingDriveOpen;
         this.pendingDriveOpen = null;
