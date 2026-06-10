@@ -1,15 +1,90 @@
 // BASH Gender Classification Module - reCAPTCHA Style
+// All settings are controlled remotely via the notARobot config Google Sheet.
 const BASH_GENDER = {
   targetGender: null,
-  namesData: [], // [{row: X, name: "Y"}]
+  namesData: [],
   _delayTimer: null,
-  
+  _remoteConfig: null, // cached remote config
+
   // URL to the published logger CSV
   LOGGER_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=853917613&single=true&output=csv",
+
+  // Default values (overridden by remote config)
+  DEFAULTS: {
+    totalNames: 6,
+    sameGenderHoneypots: 1,
+    otherGenderHoneypots: 1,
+    delayAfterOpenSec: 10,
+    cooldownHours: 10
+  },
 
   init() {
     this.setupModalMarkup();
   },
+
+  // ──────────────────────────────────────────────
+  //  Remote Config Loader
+  // ──────────────────────────────────────────────
+
+  /**
+   * Fetch and parse the notARobot config sheet.
+   * Returns an object with parsed settings.
+   */
+  async loadRemoteConfig() {
+    if (this._remoteConfig) return this._remoteConfig;
+
+    const csvUrl = BASH_CONFIG.NOTAROBOT_CONFIG_CSV;
+    if (!csvUrl) {
+      console.warn("[BASH Gender] NOTAROBOT_CONFIG_CSV is empty. Using defaults.");
+      this._remoteConfig = { ...this.DEFAULTS };
+      return this._remoteConfig;
+    }
+
+    try {
+      const res = await fetch(`${csvUrl}&_t=${Date.now()}`);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      const text = await res.text();
+      const lines = text.split(/\r?\n/);
+      const config = { ...this.DEFAULTS };
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        // Split only on first comma (value might contain commas)
+        const sepIdx = lines[i].indexOf(",");
+        if (sepIdx === -1) continue;
+        const key = lines[i].substring(0, sepIdx).trim().toLowerCase();
+        const val = lines[i].substring(sepIdx + 1).trim();
+
+        const parsedInt = parseInt(val, 10);
+
+        if (key.includes("total names")) {
+          config.totalNames = !isNaN(parsedInt) ? parsedInt : this.DEFAULTS.totalNames;
+        } else if (key.includes("same gender")) {
+          config.sameGenderHoneypots = !isNaN(parsedInt) ? parsedInt : this.DEFAULTS.sameGenderHoneypots;
+        } else if (key.includes("other gender")) {
+          config.otherGenderHoneypots = !isNaN(parsedInt) ? parsedInt : this.DEFAULTS.otherGenderHoneypots;
+        } else if (key.includes("delay after opening") || key.includes("delay after open")) {
+          config.delayAfterOpenSec = !isNaN(parsedInt) ? parsedInt : this.DEFAULTS.delayAfterOpenSec;
+        } else if (key.includes("fill") || key.includes("clasification") || key.includes("classification")) {
+          config.cooldownHours = !isNaN(parsedInt) ? parsedInt : this.DEFAULTS.cooldownHours;
+        }
+      }
+
+      console.log("[BASH Gender] Remote config loaded:", config);
+      this._remoteConfig = config;
+      return config;
+
+    } catch (err) {
+      console.warn("[BASH Gender] Failed to load remote config, using defaults:", err);
+      this._remoteConfig = { ...this.DEFAULTS };
+      return this._remoteConfig;
+    }
+  },
+
+  // ──────────────────────────────────────────────
+  //  Modal Setup
+  // ──────────────────────────────────────────────
 
   setupModalMarkup() {
     if (document.getElementById("genderVerificationModal")) return;
@@ -50,18 +125,34 @@ const BASH_GENDER = {
     if (submitBtn) {
       submitBtn.addEventListener("click", () => this.handleGenderSubmit());
     }
-    
+
     const reloadBtn = document.getElementById("genderReloadBtn");
     if (reloadBtn) {
       reloadBtn.addEventListener("click", () => {
-        const email = window.BASH ? BASH.getUserEmail() : null;
+        const email = typeof BASH !== "undefined" ? BASH.getUserEmail() : null;
         if (email && email !== "anonymous") {
           reloadBtn.classList.add("spinning");
+          
+          // Make UI feel faster by immediately clearing grid and showing loading state
+          const grid = document.getElementById("genderOptionsGrid");
+          const title = document.getElementById("genderTargetTitle");
+          const submitBtn = document.getElementById("genderSubmitBtn");
+          if (grid) grid.innerHTML = `<div style="grid-column: span 3; text-align: center; padding: 20px; color: #64748b;">Loading new names...</div>`;
+          if (title) title.textContent = "Loading...";
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Loading...";
+          }
+          
           this.fetchAndShowCaptcha(email, BASH_CONFIG.GENDER_CLASSIFIER_URL);
         }
       });
     }
   },
+
+  // ──────────────────────────────────────────────
+  //  Modal Show / Hide
+  // ──────────────────────────────────────────────
 
   showModal(targetGender, namesData) {
     this.targetGender = targetGender;
@@ -86,11 +177,11 @@ const BASH_GENDER = {
       card.className = "gender-option-card";
       card.dataset.index = index;
       card.innerHTML = `<div class="gender-option-label">${item.name}</div>`;
-      
+
       card.addEventListener("click", () => {
         card.classList.toggle("active");
       });
-      
+
       grid.appendChild(card);
     });
 
@@ -107,7 +198,6 @@ const BASH_GENDER = {
     if (modal) {
       modal.style.display = "flex";
       modal.classList.remove("visible");
-      // Force reflow so the transition plays
       void modal.offsetWidth;
       modal.classList.add("visible");
     }
@@ -121,13 +211,14 @@ const BASH_GENDER = {
     }
   },
 
-  /**
-   * Helper to parse CSV simply. 
-   */
+  // ──────────────────────────────────────────────
+  //  CSV Parsing & Cooling Period
+  // ──────────────────────────────────────────────
+
   parseCSV(csvStr) {
     const lines = csvStr.split(/\r?\n/);
     const result = [];
-    for (let i = 1; i < lines.length; i++) { // skip header
+    for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const cols = lines[i].split(",");
       result.push(cols);
@@ -136,32 +227,29 @@ const BASH_GENDER = {
   },
 
   /**
-   * Check if user completed the captcha in the last 10 hours via Logger CSV.
+   * Check if user completed the captcha within the cooling period via Logger CSV.
+   * The cooling period (in hours) comes from remote config.
    */
-  async hasCompletedRecently(email) {
+  async hasCompletedRecently(email, cooldownHours) {
     try {
-      // Append random param to bypass browser cache
       const res = await fetch(`${this.LOGGER_CSV_URL}&_t=${Date.now()}`);
       if (!res.ok) return false;
-      
+
       const text = await res.text();
       const rows = this.parseCSV(text);
-      
-      // Look for action: "Prove Human Classification"
-      // Timestamp (col 0), Email (col 1), Course Name (col 2), Folder Name (col 3)
+
       let latestTime = 0;
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row.length < 4) continue;
         const rowEmail = row[1].trim().toLowerCase();
-        const rowFolder = row[3].trim();
+        const rowCourse = row[2].trim();
         
-        if (rowEmail === email && rowFolder === "Prove Human Classification") {
+        if (rowEmail === email && rowCourse === "Prove Human Classification") {
           let tsStr = row[0].trim();
           let timeValue = Date.parse(tsStr);
-          
+
           if (isNaN(timeValue)) {
-            // Try swapping DD/MM to MM/DD if needed
             const parts = tsStr.split(" ");
             if (parts.length > 0) {
               const dateParts = parts[0].split("/");
@@ -177,60 +265,107 @@ const BASH_GENDER = {
         }
       }
 
-      const tenHoursMs = 10 * 60 * 60 * 1000;
-      return (Date.now() - latestTime) < tenHoursMs;
-      
+      const cooldownMs = cooldownHours * 60 * 60 * 1000;
+      return (Date.now() - latestTime) < cooldownMs;
+
     } catch (err) {
       console.warn("[BASH Gender] Could not fetch/parse logger CSV:", err);
       return true;
     }
   },
 
+  // ──────────────────────────────────────────────
+  //  Main Entry Point
+  // ──────────────────────────────────────────────
+
   /**
    * Main gate-keeper check.
-   * Only triggered for verified/authorized emails after authentication.
-   * Adds a 10-second delay so the user can settle in before the captcha appears.
+   * 1. Load remote config from Google Sheet
+   * 2. Check cooling period via Logger CSV
+   * 3. Wait the configured delay, then show captcha
    */
   async checkVerification(email) {
     if (!email || email === "anonymous") return;
-    
+
     const url = BASH_CONFIG.GENDER_CLASSIFIER_URL;
     if (!url) {
-      console.warn("[BASH Gender] GENDER_CLASSIFIER_URL is empty. Skipping gender verification.");
+      console.warn("[BASH Gender] GENDER_CLASSIFIER_URL is empty. Skipping.");
       return;
     }
 
-    // 1. Check Cooling Period using Logger CSV
-    const recentlyCompleted = await this.hasCompletedRecently(email);
+    // 1. Load remote config
+    const cfg = await this.loadRemoteConfig();
+
+    // 2. Check Cooling Period using Logger CSV
+    const recentlyCompleted = await this.hasCompletedRecently(email, cfg.cooldownHours);
     if (recentlyCompleted) {
-      console.log("[BASH Gender] Completed recently according to Logger. Skipping.");
+      console.log(`[BASH Gender] Completed within last ${cfg.cooldownHours}h. Skipping.`);
       return;
     }
 
-    // 2. Wait 10 seconds before showing the captcha
-    console.log("[BASH Gender] Will show captcha in 10 seconds...");
+    // 3. Wait the configured delay before showing captcha
+    const delaySec = cfg.delayAfterOpenSec;
+    console.log(`[BASH Gender] Will show captcha in ${delaySec} seconds...`);
     if (this._delayTimer) clearTimeout(this._delayTimer);
     this._delayTimer = setTimeout(() => {
       this.fetchAndShowCaptcha(email, url);
-    }, 10000);
+    }, delaySec * 1000);
+  },
+
+  // ──────────────────────────────────────────────
+  //  Fetch Names & Show Captcha
+  // ──────────────────────────────────────────────
+
+  async fetchCaptchaData(email, url) {
+    const cfg = this._remoteConfig || this.DEFAULTS;
+    const size = cfg.totalNames;
+    const sameHP = cfg.sameGenderHoneypots;
+    const otherHP = cfg.otherGenderHoneypots;
+
+    // Add a random timestamp parameter (_t) to prevent the browser from caching the GET request!
+    const checkUrl = `${url}?action=check&size=${size}&sameHP=${sameHP}&otherHP=${otherHP}&email=${encodeURIComponent(email)}&_t=${Date.now()}`;
+    const response = await fetch(checkUrl);
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return await response.json();
+  },
+
+  async prefetchCaptcha(email, url) {
+    if (this._isPrefetching || this.prefetchedData) return;
+    this._isPrefetching = true;
+    try {
+      const res = await this.fetchCaptchaData(email, url);
+      if (res.success && res.needsClassification && res.names && res.names.length > 0) {
+        this.prefetchedData = res;
+        console.log("[BASH Gender] Successfully prefetched backup names.");
+      }
+    } catch(err) {
+      console.warn("[BASH Gender] Prefetch failed:", err);
+    } finally {
+      this._isPrefetching = false;
+    }
   },
 
   async fetchAndShowCaptcha(email, url) {
     try {
-      const size = BASH_CONFIG.GENDER_CAPTCHA_SIZE || 6;
-      const checkUrl = `${url}?action=check&size=${size}&email=${encodeURIComponent(email)}`;
-      const response = await fetch(checkUrl);
-      if (!response.ok) return;
+      let res = null;
+      if (this.prefetchedData) {
+        res = this.prefetchedData;
+        this.prefetchedData = null; // consume it
+        console.log("[BASH Gender] Used instantly from prefetch cache.");
+      } else {
+        res = await this.fetchCaptchaData(email, url);
+      }
 
-      const res = await response.json();
-      if (res.success && res.needsClassification && res.names && res.names.length > 0) {
+      if (res && res.success && res.needsClassification && res.names && res.names.length > 0) {
         const targetGender = res.targetGender || "Female";
         this.showModal(targetGender, res.names);
+        
+        // Trigger background prefetch for the next reload
+        this.prefetchCaptcha(email, url);
       } else {
-         console.log("[BASH Gender] No names need classification.", res.message);
-         // Stop reload spinner in case this was a reload
-         const reloadBtn = document.getElementById("genderReloadBtn");
-         if (reloadBtn) reloadBtn.classList.remove("spinning");
+        console.log("[BASH Gender] No names need classification.", res?.message);
+        const reloadBtn = document.getElementById("genderReloadBtn");
+        if (reloadBtn) reloadBtn.classList.remove("spinning");
       }
     } catch (err) {
       console.error("[BASH Gender] Failed to fetch unclassified names:", err);
@@ -238,6 +373,10 @@ const BASH_GENDER = {
       if (reloadBtn) reloadBtn.classList.remove("spinning");
     }
   },
+
+  // ──────────────────────────────────────────────
+  //  Submit Handler
+  // ──────────────────────────────────────────────
 
   async handleGenderSubmit() {
     const email = BASH.getUserEmail();
@@ -247,7 +386,7 @@ const BASH_GENDER = {
 
     if (!email || email === "anonymous" || !this.targetGender || !url) return;
 
-    // The user MUST select at least 1 card
+    // Must select at least 1 card
     const selectedCount = document.querySelectorAll(".gender-option-card.active").length;
     if (selectedCount === 0) {
       if (errEl) {
@@ -266,18 +405,16 @@ const BASH_GENDER = {
       errEl.textContent = "";
     }
 
-    // Determine the opposite gender
     const oppositeGender = this.targetGender === "Female" ? "Male" : "Female";
 
-    // Build payload array
     const classifications = [];
     const cards = document.querySelectorAll(".gender-option-card");
-    
+
     cards.forEach(card => {
       const idx = card.dataset.index;
       const isSelected = card.classList.contains("active");
       const assignedGender = isSelected ? this.targetGender : oppositeGender;
-      
+
       classifications.push({
         row: this.namesData[idx].row,
         gender: assignedGender
@@ -285,23 +422,20 @@ const BASH_GENDER = {
     });
 
     try {
-      // Send batch classification
       const submitUrl = `${url}?action=submit&email=${encodeURIComponent(email)}&payload=${encodeURIComponent(JSON.stringify(classifications))}`;
       const response = await fetch(submitUrl);
-      
+
       if (!response.ok) throw new Error("HTTP connection failed");
 
       const res = await response.json();
       if (res.success) {
         this.hideModal();
-        
-        // Log to BASH Logger to record the "Prove Human Classification" event
-        if (window.BASH && typeof window.BASH.logEvent === "function") {
-           BASH.logEvent("Prove Human Classification", "Security", `Target: ${this.targetGender}`, `Count: ${classifications.length}`);
-        }
 
+        // Log "Prove Human Classification" to the BASH Logger
+        if (typeof BASH !== "undefined" && typeof BASH.logDriveClick === "function") {
+          BASH.logDriveClick(email, "Prove Human Classification", "Security", `Target: ${this.targetGender} | Count: ${classifications.length}`);
+        }
       } else {
-        // Honeypot check failed
         throw new Error(res.error || "Verification failed");
       }
     } catch (err) {
@@ -310,7 +444,7 @@ const BASH_GENDER = {
         errEl.textContent = "Verification failed. Try again.";
         errEl.style.display = "block";
       }
-      
+
       // Auto-retry with new names after 1.5s
       if (submitBtn) submitBtn.textContent = "Loading...";
       setTimeout(() => {

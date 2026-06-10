@@ -35,10 +35,16 @@ function doGet(e) {
       return jsonResponse({ success: false, error: "Required columns (Name, Gender, Email) not found." });
     }
 
-    // 1. Fetch random names for the captcha including 1 honeypot
+      // 1. Fetch random names for the captcha including honeypots
     if (action === "check") {
       let size = parseInt(params.size, 10);
       if (isNaN(size) || size < 2) size = 6; // Default to 6
+
+      let sameHP = parseInt(params.sameHP, 10);
+      if (isNaN(sameHP) || sameHP < 0) sameHP = 1;
+
+      let otherHP = parseInt(params.otherHP, 10);
+      if (isNaN(otherHP) || otherHP < 0) otherHP = 1;
 
       let unclassified = [];
       let knownMales = [];
@@ -60,32 +66,37 @@ function doGet(e) {
         }
       }
 
-      // We need at least (size - 2) unclassified to populate
-      if (unclassified.length < size - 2) {
-        return jsonResponse({ success: true, needsClassification: false, message: "Not enough unclassified names left." });
-      }
+      const numUnclassifiedNeeded = size - (sameHP + otherHP);
 
-      // We need at least 1 known male and 1 known female for dual-honeypot
-      if (knownMales.length === 0 || knownFemales.length === 0) {
-        return jsonResponse({ success: true, needsClassification: false, message: "Bootstrap required. Please classify at least 1 Male and 1 Female name manually in the sheet." });
+      // We need at least numUnclassifiedNeeded unclassified to populate
+      if (unclassified.length < numUnclassifiedNeeded) {
+        return jsonResponse({ success: true, needsClassification: false, message: "Not enough unclassified names left." });
       }
 
       let targetGender = Math.random() > 0.5 ? "Male" : "Female";
 
-      // Pick 1 random Male honeypot
-      shuffleArray(knownMales);
-      let honeypotMale = knownMales[0];
+      let sameHoneypotPool = targetGender === "Male" ? knownMales : knownFemales;
+      let otherHoneypotPool = targetGender === "Male" ? knownFemales : knownMales;
 
-      // Pick 1 random Female honeypot
-      shuffleArray(knownFemales);
-      let honeypotFemale = knownFemales[0];
+      // We need at least sameHP known names for the target gender and otherHP known names for the opposite gender
+      if (sameHoneypotPool.length < sameHP || otherHoneypotPool.length < otherHP) {
+        return jsonResponse({ success: true, needsClassification: false, message: `Bootstrap required. Please classify at least ${targetGender === "Male" ? sameHP : otherHP} Male and ${targetGender === "Female" ? sameHP : otherHP} Female names manually in the sheet.` });
+      }
 
-      // Pick (size - 2) unclassified
+      // Pick sameHP random target gender honeypots
+      shuffleArray(sameHoneypotPool);
+      let selectedSameHoneypots = sameHoneypotPool.slice(0, sameHP);
+
+      // Pick otherHP random opposite gender honeypots
+      shuffleArray(otherHoneypotPool);
+      let selectedOtherHoneypots = otherHoneypotPool.slice(0, otherHP);
+
+      // Pick numUnclassifiedNeeded unclassified
       shuffleArray(unclassified);
-      let selectedUnclassified = unclassified.slice(0, size - 2);
+      let selectedUnclassified = unclassified.slice(0, numUnclassifiedNeeded);
 
       // Combine and shuffle the grid
-      let grid = [...selectedUnclassified, honeypotMale, honeypotFemale];
+      let grid = [...selectedUnclassified, ...selectedSameHoneypots, ...selectedOtherHoneypots];
       shuffleArray(grid);
 
       return jsonResponse({

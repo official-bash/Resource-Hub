@@ -38,9 +38,14 @@ const BASH_CONFIG = {
   // If logging fails with 403, redeploy and paste the new URL (see LOGGER-SETUP.md)
   LOGGER_URL: "https://script.google.com/macros/s/AKfycbzr4h1W_NFBvByZIRQkFzRAmgk05E0Ll9q9otkjhKPHdE8e_61jLg-_FwwXupEpM5NsUQ/exec",
 
-  // Gender classification web app URL (Deploy as Web App, Access: Anyone)
-  GENDER_CLASSIFIER_URL: "https://script.google.com/macros/s/AKfycbzDxCiTup3pvv1Lf02pj7ashLReSzYN2NEeE7tqtE6Qsng25-pvqw8kRTZ5y2ElS9mF/exec",
+  // Published CSV URL for the Logger Spreadsheet (to read history for the captcha cooldown)
+  LOGGER_CSV: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQAKxuUcidPiW_Tj1HtGySIKmlbm86N4Eh_qDw7QhsvDzJ-aAHSysjPZcmPJwGYpFrvKglKFb_5TK_L/pub?gid=853917613&single=true&output=csv",
 
+  // Gender classification web app URL (Deploy as Web App, Access: Anyone)
+  GENDER_CLASSIFIER_URL: "https://script.google.com/macros/s/AKfycbxLIMEcfZwQplY6O2hKPMU8ml34tfvMsrzph7zsFE3SCXoBsZDVpEzZYAYCCGc4fFZb/exec",
+
+  // notARobot config sheet (controls captcha grid size, honeypot counts, delays)
+  NOTAROBOT_CONFIG_CSV: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvot6xMc3FvT6zeO1LGOTb48fXUXc54Xm1kOszCh00KYl2RNzGNJr6s-HS8oTm3qFvinb0pjQbpNLT/pub?gid=1014028119&single=true&output=csv",
 
   // Published CSV of registration form responses / verified email databases.
   // Only emails found in these sheets are accepted.
