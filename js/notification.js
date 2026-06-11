@@ -100,8 +100,10 @@ const Notification = {
   },
 
   parseCSVLine(line) {
-    const values =
-      line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(",");
+    // Match either:
+    // 1. A quoted string (which can contain commas and spaces)
+    // 2. An unquoted string (which can contain spaces but NO commas)
+    const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || line.split(",");
     return values.map((v) => v.replace(/^"|"$/g, "").trim());
   },
 
