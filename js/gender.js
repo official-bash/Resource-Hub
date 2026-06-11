@@ -247,15 +247,27 @@ const BASH_GENDER = {
         
         if (rowEmail === email && rowCourse === "Prove Human Classification") {
           let tsStr = row[0].trim();
-          let timeValue = Date.parse(tsStr);
+          let timeValue = NaN;
 
-          if (isNaN(timeValue)) {
-            const parts = tsStr.split(" ");
-            if (parts.length > 0) {
-              const dateParts = parts[0].split("/");
-              if (dateParts.length === 3) {
-                timeValue = Date.parse(`${dateParts[1]}/${dateParts[0]}/${dateParts[2]} ${parts[1] || ""}`);
+          // Parse strict DD/MM/YYYY HH:mm:ss to prevent browser MM/DD/YYYY confusion
+          const parts = tsStr.split(" ");
+          if (parts.length > 0) {
+            const dateParts = parts[0].split("/");
+            if (dateParts.length === 3) {
+              const day = parseInt(dateParts[0], 10);
+              const month = parseInt(dateParts[1], 10) - 1; // JS months are 0-indexed
+              const year = parseInt(dateParts[2], 10);
+              
+              let hours = 0, mins = 0, secs = 0;
+              if (parts[1]) {
+                const timeParts = parts[1].split(":");
+                if (timeParts.length >= 2) {
+                  hours = parseInt(timeParts[0], 10) || 0;
+                  mins = parseInt(timeParts[1], 10) || 0;
+                  secs = parseInt(timeParts[2], 10) || 0;
+                }
               }
+              timeValue = new Date(year, month, day, hours, mins, secs).getTime();
             }
           }
 
